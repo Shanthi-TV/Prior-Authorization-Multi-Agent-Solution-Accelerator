@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.patches import apply as _apply_windows_cli_patch
 from app.routers import review, decision
+
+# Fix Windows .CMD subprocess argument mangling (no-op on non-Windows)
+_apply_windows_cli_patch()
 
 app = FastAPI(
     title="Prior Authorization Review API",
