@@ -154,6 +154,7 @@ class ReviewResponse(BaseModel):
     disclaimer: str = "AI-assisted draft. Medicare LCDs/NCDs applied. Human review required."
     agent_results: AgentResults | None = None
     audit_trail: AuditTrail | None = None
+    audit_justification: str | None = None
 
 
 # --- Decision & Notification models ---

@@ -83,6 +83,7 @@ def _build_review_response(request_id: str, result: dict) -> ReviewResponse:
         ),
         agent_results=agent_results,
         audit_trail=audit_trail,
+        audit_justification=result.get("audit_justification"),
     )
 
 

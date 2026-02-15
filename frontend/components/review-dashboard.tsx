@@ -2,6 +2,7 @@
 
 import type { ReviewResponse } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,6 +22,8 @@ import {
   Database,
   Clock,
   Info,
+  Download,
+  FileText,
 } from "lucide-react";
 
 interface ReviewDashboardProps {
@@ -28,6 +31,17 @@ interface ReviewDashboardProps {
 }
 
 export function ReviewDashboard({ review }: ReviewDashboardProps) {
+  function handleDownloadJustification() {
+    if (!review.audit_justification) return;
+    const blob = new Blob([review.audit_justification], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `audit-justification-${review.request_id.slice(0, 8)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="mt-8 space-y-6">
       {/* Recommendation header */}
@@ -277,6 +291,36 @@ export function ReviewDashboard({ review }: ReviewDashboardProps) {
                   </div>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Download audit justification */}
+      {review.audit_justification && (
+        <Card className="shadow-sm border border-blue-200 bg-gradient-to-r from-blue-50/60 to-indigo-50/40">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                  <FileText className="h-5 w-5 text-blue-700" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Audit Justification Document</p>
+                  <p className="text-xs text-muted-foreground">
+                    Full 8-section review with criterion evaluations, validation checks, and decision rationale
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleDownloadJustification}
+                variant="outline"
+                size="sm"
+                className="border-blue-300 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+              >
+                <Download className="mr-1.5 h-4 w-4" />
+                Download
+              </Button>
             </div>
           </CardContent>
         </Card>
