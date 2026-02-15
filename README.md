@@ -881,7 +881,7 @@ prompts contain multi-line instructions with pipe characters.
 the `.CMD` wrapper with a direct `node.exe cli.js` invocation, bypassing
 `cmd.exe` entirely.
 
-**Patch 2 — API credential override:**
+**Patch 2 — API credential override + Foundry auth:**
 
 When running inside a Claude Code editor session (e.g., VS Code), the
 environment inherits a local-proxy `ANTHROPIC_API_KEY` and
@@ -889,9 +889,16 @@ environment inherits a local-proxy `ANTHROPIC_API_KEY` and
 subprocess inherits these invalid credentials, resulting in empty responses
 (cost $0, `tokenSource: 'none'`).
 
+Additionally, the Claude Code CLI requires Foundry-specific environment
+variables for Azure authentication: `CLAUDE_CODE_USE_FOUNDRY=true`,
+`ANTHROPIC_FOUNDRY_API_KEY`, and `ANTHROPIC_FOUNDRY_BASE_URL`. Without
+these, the CLI fails at startup with "Failed to start Claude Code:".
+
 **Fix:** Overrides `ANTHROPIC_API_KEY` and `ANTHROPIC_BASE_URL` with the
 real Azure Foundry credentials from the `.env` file
-(`AZURE_FOUNDRY_API_KEY` / `AZURE_FOUNDRY_ENDPOINT`).
+(`AZURE_FOUNDRY_API_KEY` / `AZURE_FOUNDRY_ENDPOINT`), and also sets the
+Foundry-specific env vars (`CLAUDE_CODE_USE_FOUNDRY=true`,
+`ANTHROPIC_FOUNDRY_API_KEY`, `ANTHROPIC_FOUNDRY_BASE_URL`).
 
 **Patch 3 — Model mapping:**
 
@@ -908,7 +915,7 @@ SDK uses the correct model (e.g., `claude-opus-4-5`).
 | Patch | Activates when |
 |-------|---------------|
 | CMD bypass | `os.name == "nt"` and `shutil.which("claude")` returns a `.CMD` file |
-| API credentials | `AZURE_FOUNDRY_API_KEY` is set in the environment |
+| API credentials + Foundry auth | `AZURE_FOUNDRY_API_KEY` is set in the environment |
 | Model mapping | `CLAUDE_MODEL` is set in the environment |
 
 On Linux/macOS or in Docker containers (where the CLI is bundled in the
@@ -1392,13 +1399,19 @@ az containerapp create \
 
 All three agents fail with an empty error message on Windows.
 
-**Cause:** The Claude Code CLI is installed as a `.CMD` batch file wrapper.
-When the SDK spawns it as a subprocess, `cmd.exe` mangles newlines and
-special characters in the `--system-prompt` argument.
+**Cause 1 — CMD bypass:** The Claude Code CLI is installed as a `.CMD`
+batch file wrapper. When the SDK spawns it as a subprocess, `cmd.exe`
+mangles newlines and special characters in the `--system-prompt` argument.
 
-**Fix:** The `app/patches/__init__.py` module patches this automatically.
-Make sure you are running the **latest code** — restart the uvicorn server
-after pulling updates:
+**Cause 2 — Missing Foundry auth:** The Claude Code CLI requires
+Foundry-specific env vars (`CLAUDE_CODE_USE_FOUNDRY=true`,
+`ANTHROPIC_FOUNDRY_API_KEY`, `ANTHROPIC_FOUNDRY_BASE_URL`) for Azure
+authentication. Setting only `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL`
+is not sufficient.
+
+**Fix:** The `app/patches/__init__.py` module patches both issues
+automatically. Make sure you are running the **latest code** — restart
+the uvicorn server after pulling updates:
 
 ```bash
 cd backend
@@ -1408,6 +1421,7 @@ uvicorn app.main:app --reload
 Verify the patches are applied by checking the server log for:
 ```
 INFO:app.patches:Applied Windows CLI patch: ...node.EXE ...cli.js (bypassing .CMD wrapper)
+INFO:app.patches:Set CLAUDE_CODE_USE_FOUNDRY=true + Foundry credentials
 ```
 
 ### Agents return empty responses (cost $0)
@@ -1420,10 +1434,12 @@ processes.
 
 **Fix:** Ensure `AZURE_FOUNDRY_API_KEY` and `AZURE_FOUNDRY_ENDPOINT` are
 set in `backend/.env`. The patches module overrides the inherited proxy
-credentials with the real ones. Check for this log line:
+credentials with the real ones and sets Foundry-specific auth env vars.
+Check for these log lines:
 
 ```
 INFO:app.patches:Set ANTHROPIC_API_KEY from AZURE_FOUNDRY_API_KEY
+INFO:app.patches:Set CLAUDE_CODE_USE_FOUNDRY=true + Foundry credentials
 ```
 
 ### "Failed to proxy" / ECONNREFUSED / "Review failed"
