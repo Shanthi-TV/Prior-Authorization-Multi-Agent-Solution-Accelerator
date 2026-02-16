@@ -111,9 +111,9 @@ def _decision_badge(pdf: FPDF, recommendation: str) -> None:
 
 def _confidence_bar(pdf: FPDF, value: float, level: str) -> None:
     """Render a simple confidence bar with percentage."""
-    bar_width = 80
+    bar_width = 60
     bar_height = 6
-    x = pdf.get_x() + 50
+    x = 10  # left margin
     y = pdf.get_y()
 
     # Background
@@ -130,7 +130,7 @@ def _confidence_bar(pdf: FPDF, value: float, level: str) -> None:
         pdf.set_fill_color(*_RED_TEXT)
     pdf.rect(x, y, bar_width * pct, bar_height, "F")
 
-    # Label
+    # Label — at x=73, well within right margin at x=200
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(*_BLACK)
     pdf.set_xy(x + bar_width + 3, y)
@@ -200,6 +200,8 @@ def _safe_str(value) -> str:
     s = s.replace("\u201d", '"')    # right double quote
     s = s.replace("\u2022", "-")    # bullet
     s = s.replace("\u2026", "...")  # ellipsis
+    # Catch-all: replace any remaining non-Latin-1 chars with '?'
+    s = s.encode("latin-1", errors="replace").decode("latin-1")
     return s
 
 
@@ -274,7 +276,8 @@ def generate_audit_justification_pdf(
     _kv(pdf, "Procedure Codes", ", ".join(request_data.get("procedure_codes", [])))
 
     pdf.set_font("Helvetica", "B", 9)
-    pdf.cell(50, 6, "Confidence:")
+    pdf.cell(0, 6, "Confidence:")
+    pdf.ln(5)
     _confidence_bar(pdf, confidence, confidence_level)
 
     summary_text = synthesis.get("summary", "N/A")
