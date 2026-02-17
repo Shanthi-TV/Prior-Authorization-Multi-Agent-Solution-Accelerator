@@ -855,6 +855,10 @@ to APPROVE/PEND outcomes. The gates can be reordered, criteria added, or the
 policy mode changed from LENIENT to STRICT (which would allow DENY
 recommendations).
 
+**Important:** Both modes are synced. If you change one, update the other to
+keep them consistent. The inline prompts in all four agent files mirror the
+content of their corresponding SKILL.md files.
+
 ### Customize notification letters
 
 Edit `backend/app/services/notification.py` to change letter templates.
@@ -1082,17 +1086,20 @@ pend types), and structured audit trails.
 | Aspect | Skills-based (default) | Prompt-based (fallback) | Anthropic skill |
 |--------|----------------------|------------------------|-----------------|
 | Agent configuration | SKILL.md files via MAF discovery | Inline system instructions | SKILL.md via Claude Code Skills API |
-| Token efficiency | Progressive disclosure — only loaded when invoked | Full prompt (~800-900 tokens per agent) | Progressive disclosure per subskill |
-| Prompt vetting | Best of both: Anthropic patterns + our enhancements | Written independently | Anthropic's internal clinical review |
+| Token efficiency | Progressive disclosure — only loaded when invoked | Full prompt (~1,200-1,500 tokens per agent) | Progressive disclosure per subskill |
+| Prompt vetting | Best of both: Anthropic patterns + our enhancements | Same content as skills mode (synced) | Anthropic's internal clinical review |
 | Parallelism | Multi-agent, concurrent | Multi-agent, concurrent | Single agent, sequential |
 | Platform | Azure Foundry via MAF | Azure Foundry via MAF | Claude Code with Skills API beta headers |
-| Confidence formula | Explicit weighted (4 components) | Per-agent averages | Subjective assessment |
+| Confidence formula | Explicit weighted (4 components) | Explicit weighted (4 components, synced) | Subjective assessment |
 | Toggle | `USE_SKILLS=true` (default) | `USE_SKILLS=false` | N/A |
 
 ### Prompt caching
 
 The agent instructions are sent as the system prompt on every API call,
-consuming ~800-900 input tokens per agent (~3,100 total per review). Anthropic's
+consuming ~1,200-1,500 input tokens per agent (~5,000 total per review).
+In skills mode, prompts are loaded on demand via MAF skill discovery,
+which avoids embedding the full text in the Python source. In prompt mode,
+the same content is inlined. Anthropic's
 [prompt caching](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching)
 can reduce this cost by ~90% for repeated identical system prompts. The Claude
 SDK may leverage this automatically.
