@@ -14,7 +14,9 @@ export const SAMPLE_REQUEST: PriorAuthRequest = {
     "avidity with SUV max of 4.2, concerning for malignancy.\n\n" +
     "PMH: COPD (mild, GOLD stage I), hypertension, hyperlipidemia. " +
     "40 pack-year smoking history, quit 5 years ago. No prior history of " +
-    "malignancy. Family history significant for lung cancer (father, age 72).\n\n" +
+    "malignancy. Family history significant for lung cancer (father, age 72). " +
+    "Medications: albuterol inhaler PRN, lisinopril 10 mg daily, " +
+    "atorvastatin 20 mg daily. Allergies: NKDA.\n\n" +
     "Physical exam: Vitals BP 132/78, HR 76, RR 16, SpO2 95% on room air. " +
     "Lungs with decreased breath sounds at right base; no wheezing or " +
     "crackles. Remainder of exam unremarkable.\n\n" +
