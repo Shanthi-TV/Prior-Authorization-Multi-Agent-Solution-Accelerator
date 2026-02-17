@@ -121,7 +121,7 @@ confidence scoring, progressive gate evaluation, and structured audit trails.
 
 1. A clinical reviewer fills in the PA request form in the Next.js frontend,
    or clicks **"Load Sample Case"** to populate a demo case (CT-guided
-   lung biopsy: ICD-10 R91.1/J18.9/R05.9, CPT 31628, NPI 1902809042).
+   lung biopsy: ICD-10 R91.1/J18.9/R05.9, CPT 31628, NPI 1720180003).
 
 2. The frontend POSTs to `POST /api/review/stream` on the FastAPI backend,
    opening an SSE (Server-Sent Events) connection for real-time progress.
@@ -389,7 +389,7 @@ The PDF version is professionally formatted with color-coded sections, status-co
 criterion tables (green/red/amber), confidence bars, and branded headers/footers:
 
 1. **Executive Summary** — patient, provider, decision, confidence
-2. **Medical Necessity Assessment** — provider info, policies, clinical evidence
+2. **Medical Necessity Assessment** — provider info, coverage policies, clinical evidence summary, Literature Support (PubMed references with relevance), Relevant Clinical Trials (ClinicalTrials.gov with status)
 3. **Criterion-by-Criterion Evaluation** — each criterion with status, confidence, evidence
 4. **Validation Checks** — provider NPI, diagnosis codes, compliance checklist
 5. **Decision Rationale** — gate, confidence, supporting facts
@@ -863,13 +863,16 @@ content of their corresponding SKILL.md files.
 
 Edit `backend/app/services/notification.py` to change letter templates.
 The `generate_approval_letter()` and `generate_pend_letter()` functions
-produce structured text with authorization details, validity periods,
-and appeal rights. The `generate_letter_pdf()` function renders
-a professionally formatted PDF using `fpdf2` with color-coded titles,
-section headings, and an AI-draft disclaimer watermark. Modify the
-templates to match your organization's letterhead format, add additional
-fields, or change validity periods (default: 90 days for approvals,
-30 days for pend documentation deadlines).
+accept `insurance_id` and `policy_references` parameters and produce
+structured text with authorization details, insurance member ID, coverage
+policy references, validity periods, and appeal rights. The
+`generate_letter_pdf()` function renders a professionally formatted PDF
+using `fpdf2` with color-coded titles, section headings, insurance ID
+under patient information, a coverage policy reference section, and an
+AI-draft disclaimer watermark. Modify the templates to match your
+organization's letterhead format, add additional fields, or change
+validity periods (default: 90 days for approvals, 30 days for pend
+documentation deadlines).
 
 ### Add CPT/HCPCS codes to the lookup table
 
@@ -1121,20 +1124,21 @@ adapted as an API-driven workflow instead of file-based waypoints:
 
 **Notification letter types:**
 - **Approval** — includes authorization number, validity period (90 days),
-  procedure/diagnosis summary, standard terms, and disclaimer
+  procedure/diagnosis summary, insurance ID, coverage policy references,
+  standard terms, and disclaimer
 - **Pend** — includes missing documentation list (consolidated from
   `missing_documentation` and `documentation_gaps` with criticality labels),
-  30-day deadline, and appeal rights
+  insurance ID, coverage policy references, 30-day deadline, and appeal rights
 
 **PDF generation** (`fpdf2`):
 - Custom `_LetterPDF` subclass with branded header ("PRIOR AUTHORIZATION —
   UTILIZATION MANAGEMENT") and footer ("AI-ASSISTED DRAFT — REVIEW REQUIRED"
   + page numbers)
 - Color-coded titles: green tint for approvals, amber tint for pends
-- Structured sections: patient/provider info, approved/requested services,
-  authorization period, clinical summary, missing documentation (pend only),
-  deadline (pend only), appeal rights, terms and conditions, disclaimer
-  watermark bar
+- Structured sections: patient/provider info (with insurance ID), approved/requested
+  services, coverage policy references, authorization period, clinical summary,
+  missing documentation (pend only), deadline (pend only), appeal rights, terms
+  and conditions, disclaimer watermark bar
 - Base64-encoded and included in the `DecisionResponse.letter.pdf_base64`
   field for JSON transport — no separate download endpoint needed
 - Frontend decodes base64 → `Uint8Array` → `Blob` → `URL.createObjectURL`
@@ -1165,11 +1169,11 @@ that populates a CT-guided transbronchial lung biopsy case:
 | Field | Value |
 |-------|-------|
 | Patient | John Smith, DOB 1958-03-15 |
-| Provider NPI | 1902809042 |
+| Provider NPI | 1720180003 (active pulmonologist) |
 | ICD-10 codes | R91.1 (solitary pulmonary nodule), J18.9 (pneumonia), R05.9 (cough) |
 | CPT code | 31628 (bronchoscopy with transbronchial lung biopsy) |
 | Insurance ID | MCR-123456789A |
-| Clinical notes | 68-year-old male, 1.8 cm spiculated nodule, 40 pack-year smoking history, PET SUV 4.2, interval growth, FEV1 78% |
+| Clinical notes | 68-year-old male, 1.8 cm spiculated RLL nodule (CT 01/15/2026), interval growth from 1.2 cm, PET SUV 4.2, 40 pack-year smoking history, FEV1 78%, labs (WBC 9.2, Hgb 14.1, INR 1.0), physical exam, medications (albuterol, lisinopril, atorvastatin), allergies (NKDA) |
 
 This case is designed to exercise all agents and MCP servers with a
 realistic prior authorization scenario.
