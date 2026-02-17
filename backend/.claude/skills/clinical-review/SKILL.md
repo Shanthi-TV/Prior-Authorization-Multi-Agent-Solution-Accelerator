@@ -38,6 +38,12 @@ and structure the clinical narrative for downstream coverage assessment.
 - `get_trial_details(nct_id)` — Get comprehensive details for a specific trial.
 - `search_by_eligibility(condition, age, gender, limit)` — Find trials matching
   specific patient eligibility criteria.
+- `search_investigators(name, organization, limit)` — Search for trial
+  investigators by name or organization.
+- `analyze_endpoints(nct_id)` — Analyze the primary and secondary endpoints
+  of a clinical trial.
+- `search_by_sponsor(sponsor_name, status, limit)` — Search trials by
+  sponsor organization.
 
 ### Execution Steps
 

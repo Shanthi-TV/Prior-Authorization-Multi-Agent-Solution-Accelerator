@@ -1007,8 +1007,8 @@ agent = ClaudeAgent(
     default_options={
         "cwd": str(backend_dir),
         "setting_sources": ["user", "project"],
-        "allowed_tools": ["Skill", "mcp__icd10-codes__validate_code", ...],
-        "mcp_servers": {"icd10-codes": ICD10_SERVER},
+        "allowed_tools": ["Skill", "mcp__icd10-codes__validate_code", "mcp__pubmed__search", ...],
+        "mcp_servers": {"icd10-codes": ICD10_SERVER, "pubmed": PUBMED_SERVER, "clinical-trials": TRIALS_SERVER},
         "permission_mode": "bypassPermissions",
     },
 )
