@@ -82,7 +82,7 @@ export function ReviewDashboard({ review }: ReviewDashboardProps) {
         <CardContent className="space-y-4">
           <div>
             <p className="text-sm font-medium mb-1">Confidence</p>
-            <ConfidenceBar value={review.confidence} className="max-w-sm" />
+            <ConfidenceBar value={review.confidence <= 1 ? Math.round(review.confidence * 100) : Math.round(review.confidence)} className="max-w-sm" />
           </div>
 
           <div>

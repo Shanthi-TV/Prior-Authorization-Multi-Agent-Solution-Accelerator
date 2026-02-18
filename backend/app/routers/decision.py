@@ -1,5 +1,6 @@
 """Decision and notification endpoint for prior authorization review."""
 
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
@@ -12,6 +13,8 @@ from app.services.notification import (
     generate_pend_letter,
     generate_letter_pdf,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -88,16 +91,23 @@ async def submit_decision(request: DecisionRequest):
     }
 
     # Generate notification letter
-    if final_recommendation == "approve":
-        letter_dict = generate_approval_letter(**common_kwargs)
-    else:
-        letter_dict = generate_pend_letter(
-            **common_kwargs,
-            missing_documentation=review_response.get("missing_documentation", []),
-            documentation_gaps=[
-                g if isinstance(g, dict) else {}
-                for g in review_response.get("documentation_gaps", [])
-            ],
+    try:
+        if final_recommendation == "approve":
+            letter_dict = generate_approval_letter(**common_kwargs)
+        else:
+            letter_dict = generate_pend_letter(
+                **common_kwargs,
+                missing_documentation=review_response.get("missing_documentation", []),
+                documentation_gaps=[
+                    g if isinstance(g, dict) else {}
+                    for g in review_response.get("documentation_gaps", [])
+                ],
+            )
+    except Exception as e:
+        logger.error("Letter generation failed: %s", e, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Letter generation failed: {e}",
         )
 
     # Enrich letter_dict with fields needed for PDF rendering
@@ -115,8 +125,12 @@ async def submit_decision(request: DecisionRequest):
             for g in review_response.get("documentation_gaps", [])
         ]
 
-    # Generate PDF
-    letter_dict["pdf_base64"] = generate_letter_pdf(letter_dict)
+    # Generate PDF (may fail on encoding issues — catch gracefully)
+    try:
+        letter_dict["pdf_base64"] = generate_letter_pdf(letter_dict)
+    except Exception as e:
+        logger.error("Letter PDF generation failed: %s", e, exc_info=True)
+        letter_dict["pdf_base64"] = None  # Proceed without PDF
 
     decided_at = datetime.now(timezone.utc).isoformat()
 
@@ -134,6 +148,15 @@ async def submit_decision(request: DecisionRequest):
 
     store_decision(request.request_id, decision_record)
 
+    # Build the NotificationLetter — filter to known fields only
+    _letter_fields = {
+        "authorization_number", "letter_type", "effective_date",
+        "expiration_date", "patient_name", "provider_name",
+        "body_text", "appeal_rights", "documentation_deadline",
+        "pdf_base64",
+    }
+    letter_for_model = {k: v for k, v in letter_dict.items() if k in _letter_fields}
+
     return DecisionResponse(
         request_id=request.request_id,
         authorization_number=auth_number,
@@ -141,5 +164,5 @@ async def submit_decision(request: DecisionRequest):
         decided_by=request.reviewer_name,
         decided_at=decided_at,
         was_overridden=request.action == "override",
-        letter=NotificationLetter(**letter_dict),
+        letter=NotificationLetter(**letter_for_model),
     )

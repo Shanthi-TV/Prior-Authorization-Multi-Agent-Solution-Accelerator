@@ -277,8 +277,8 @@ def generate_audit_justification_pdf(
     _kv(pdf, "Procedure Codes", ", ".join(request_data.get("procedure_codes", [])))
 
     pdf.set_font("Helvetica", "B", 9)
-    pdf.cell(0, 6, "Confidence:")
-    pdf.ln(5)
+    pdf.cell(50, 6, "Confidence:")
+    pdf.ln(1)
     _confidence_bar(pdf, confidence, confidence_level)
 
     summary_text = synthesis.get("summary", "N/A")
@@ -295,11 +295,46 @@ def generate_audit_justification_pdf(
     _check_page_space(pdf, 40)
     _section_heading(pdf, 2, "Medical Necessity Assessment")
 
-    # Provider info
+    # Provider info — normalize the data before rendering
     pv = coverage_result.get("provider_verification", {})
     if pv and isinstance(pv, dict):
-        _kv(pdf, "Provider", f"{pv.get('name', 'N/A')} - {pv.get('specialty', 'N/A')}")
-        _kv(pdf, "Provider Status", pv.get("status", "N/A"))
+        # Extract name from various possible fields
+        provider_name = pv.get("name", "")
+        if not provider_name or provider_name == "N/A":
+            for field in ["provider_name", "full_name", "last_name"]:
+                if pv.get(field) and isinstance(pv[field], str):
+                    first = pv.get("first_name", "")
+                    if field == "last_name" and first:
+                        provider_name = f"{first} {pv[field]}"
+                    else:
+                        provider_name = pv[field]
+                    break
+
+        # Extract specialty from various possible fields
+        specialty = pv.get("specialty", "")
+        if isinstance(specialty, dict):
+            specialty = specialty.get(
+                "primary_taxonomy_description",
+                specialty.get("description", ""),
+            )
+        elif not specialty or specialty == "N/A":
+            for field in ["primary_taxonomy_description", "taxonomy_description"]:
+                if pv.get(field) and isinstance(pv[field], str):
+                    specialty = pv[field]
+                    break
+
+        # Normalize status
+        pv_status = str(pv.get("status", "N/A")).upper()
+        if pv_status in ("A", "ACTIVE"):
+            pv_status = "VERIFIED"
+        elif pv_status in ("D", "DEACTIVATED"):
+            pv_status = "INACTIVE"
+
+        if provider_name:
+            _kv(pdf, "Provider", f"{provider_name} -- {specialty}")
+        else:
+            _kv(pdf, "Provider", f"NPI {pv.get('npi', 'N/A')} -- {specialty}")
+        _kv(pdf, "Provider Status", pv_status)
 
     # Coverage policies
     policies = coverage_result.get("coverage_policies", [])
@@ -320,12 +355,20 @@ def generate_audit_justification_pdf(
         pdf.ln(5)
         if extraction.get("chief_complaint"):
             _bullet(pdf, f"Chief Complaint: {extraction['chief_complaint']}")
+        if extraction.get("history_of_present_illness"):
+            hpi = extraction["history_of_present_illness"]
+            if len(hpi) > 200:
+                hpi = hpi[:200] + "..."
+            _bullet(pdf, f"HPI: {hpi}")
         if extraction.get("prior_treatments"):
             treatments = extraction["prior_treatments"][:5]
-            _bullet(pdf, f"Prior Treatments: {'; '.join(treatments)}")
+            _bullet(pdf, f"Prior Treatments: {'; '.join(str(t) for t in treatments)}")
         if extraction.get("severity_indicators"):
             indicators = extraction["severity_indicators"][:5]
-            _bullet(pdf, f"Severity Indicators: {'; '.join(indicators)}")
+            _bullet(pdf, f"Severity Indicators: {'; '.join(str(i) for i in indicators)}")
+        if extraction.get("diagnostic_findings"):
+            findings = extraction["diagnostic_findings"][:5]
+            _bullet(pdf, f"Diagnostic Findings: {'; '.join(str(f) for f in findings)}")
         _kv(pdf, "Extraction Confidence", f"{extraction.get('extraction_confidence', 0)}%")
 
     # Literature support (PubMed)
@@ -379,7 +422,11 @@ def generate_audit_justification_pdf(
     _check_page_space(pdf, 40)
     _section_heading(pdf, 3, "Criterion-by-Criterion Evaluation")
 
+    # Use coverage criteria from agent, fall back to synthesis
     criteria = coverage_result.get("criteria_assessment", [])
+    if not criteria:
+        criteria = synthesis.get("criteria_assessment", [])
+
     if criteria:
         met_count = audit_trail.get("criteria_met_count", "0/0")
         pdf.set_font("Helvetica", "B", 9)
@@ -387,7 +434,7 @@ def generate_audit_justification_pdf(
         pdf.ln(6)
 
         # Table: Criterion | Status | Confidence | Evidence
-        col_widths = [60, 22, 22, 86]
+        col_widths = [55, 22, 22, 91]
         columns = [
             ("Criterion", col_widths[0]),
             ("Status", col_widths[1]),
@@ -410,9 +457,49 @@ def generate_audit_justification_pdf(
                     (_safe_str(c.get("criterion", "N/A")), col_widths[0]),
                     (status, col_widths[1]),
                     (conf, col_widths[2]),
-                    (evidence_text[:58], col_widths[3]),
+                    (evidence_text[:80], col_widths[3]),
                 ],
                 idx,
+                status_col=1,
+            )
+    elif synthesis.get("coverage_criteria_met") or synthesis.get("coverage_criteria_not_met"):
+        # Fall back to synthesis met/not_met lists
+        met_list = synthesis.get("coverage_criteria_met", [])
+        not_met_list = synthesis.get("coverage_criteria_not_met", [])
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(0, 6, f"Criteria Met: {len(met_list)}/{len(met_list) + len(not_met_list)}")
+        pdf.ln(6)
+
+        col_widths = [120, 22, 48]
+        columns = [
+            ("Criterion", col_widths[0]),
+            ("Status", col_widths[1]),
+            ("Source", col_widths[2]),
+        ]
+        _table_header(pdf, columns)
+
+        for idx, criterion_text in enumerate(met_list):
+            _check_page_space(pdf, 8)
+            _table_row(
+                pdf,
+                [
+                    (_safe_str(criterion_text)[:80], col_widths[0]),
+                    ("MET", col_widths[1]),
+                    ("Synthesis", col_widths[2]),
+                ],
+                idx,
+                status_col=1,
+            )
+        for idx2, criterion_text in enumerate(not_met_list):
+            _check_page_space(pdf, 8)
+            _table_row(
+                pdf,
+                [
+                    (_safe_str(criterion_text)[:80], col_widths[0]),
+                    ("NOT_MET", col_widths[1]),
+                    ("Synthesis", col_widths[2]),
+                ],
+                len(met_list) + idx2,
                 status_col=1,
             )
     else:
@@ -430,8 +517,11 @@ def generate_audit_justification_pdf(
 
     # Provider verification
     if pv and isinstance(pv, dict):
+        pv_status_display = str(pv.get("status", "N/A")).upper()
+        if pv_status_display in ("A", "ACTIVE"):
+            pv_status_display = "VERIFIED"
         pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(0, 6, f"Provider Verification: NPI {pv.get('npi', 'N/A')} - {pv.get('status', 'N/A')}")
+        pdf.cell(0, 6, f"Provider Verification: NPI {pv.get('npi', 'N/A')} - {pv_status_display}")
         pdf.ln(6)
 
     # Diagnosis code table
@@ -472,7 +562,7 @@ def generate_audit_justification_pdf(
         pdf.cell(0, 6, "Compliance Checklist:")
         pdf.ln(6)
 
-        cl_cols = [("Item", 60), ("Status", 30), ("Detail", 85)]
+        cl_cols = [("Item", 50), ("Status", 25), ("Detail", 100)]
         _table_header(pdf, cl_cols)
 
         for idx, item in enumerate(checklist):
@@ -483,9 +573,9 @@ def generate_audit_justification_pdf(
             _table_row(
                 pdf,
                 [
-                    (_safe_str(item.get("item", "?")), 60),
-                    (status, 30),
-                    (_safe_str(item.get("detail", ""))[:50], 85),
+                    (_safe_str(item.get("item", "?")), 50),
+                    (status, 25),
+                    (_safe_str(item.get("detail", ""))[:70], 100),
                 ],
                 idx,
                 status_col=1,
