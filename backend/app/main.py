@@ -1,9 +1,15 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.patches import apply as _apply_windows_cli_patch
 from app.routers import review, decision
+
+# Configure logging for the app namespace
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+logging.getLogger("app").setLevel(logging.DEBUG)
 
 # Fix Windows .CMD subprocess argument mangling (no-op on non-Windows)
 _apply_windows_cli_patch()
