@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, ArrowRightLeft, Download, Loader2, Gavel, Award, FileText } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Check, ArrowRightLeft, Download, Loader2, Gavel, Award, FileText, CheckCircle2, AlertTriangle } from "lucide-react";
 import { submitDecision } from "@/lib/api";
 import type { ReviewResponse, DecisionResponse } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,24 @@ export function DecisionPanel({ review }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [decision, setDecision] = useState<DecisionResponse | null>(null);
+
+  const isApproval = decision?.final_recommendation === "approve";
+
+  // Build a blob URL for the PDF viewer when we have PDF data
+  const pdfBlobUrl = useMemo(() => {
+    if (!decision?.letter.pdf_base64) return null;
+    try {
+      const byteChars = atob(decision.letter.pdf_base64);
+      const byteNumbers = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([byteNumbers], { type: "application/pdf" });
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
+  }, [decision?.letter.pdf_base64]);
 
   const handleAccept = async () => {
     if (!reviewerName.trim()) {
@@ -130,11 +148,23 @@ export function DecisionPanel({ review }: Props) {
               Auth #: {decision.authorization_number}
             </Badge>
           </div>
-          <div className="text-sm">
-            <span className="font-semibold">Final Recommendation:</span>{" "}
-            {decision.final_recommendation.replace(/_/g, " ").toUpperCase()}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold">Final Recommendation:</span>
+            <Badge
+              variant={isApproval ? "success" : "warning"}
+              className="text-sm px-3 py-1.5 font-bold"
+            >
+              {isApproval ? (
+                <CheckCircle2 className="mr-1.5 h-4 w-4" />
+              ) : (
+                <AlertTriangle className="mr-1.5 h-4 w-4" />
+              )}
+              {decision.final_recommendation.replace(/_/g, " ").toUpperCase()}
+            </Badge>
             {decision.was_overridden && (
-              <span className="ml-2 text-amber-600">(overridden)</span>
+              <Badge variant="outline" className="text-amber-600 border-amber-300">
+                Overridden
+              </Badge>
             )}
           </div>
           <div>
@@ -142,11 +172,21 @@ export function DecisionPanel({ review }: Props) {
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
               Notification Letter
             </p>
-            <ScrollArea className="h-[300px] rounded-md border bg-card p-4">
-              <pre className="whitespace-pre-wrap font-mono text-xs">
-                {decision.letter.body_text}
-              </pre>
-            </ScrollArea>
+            {pdfBlobUrl ? (
+              <div className="rounded-md border overflow-hidden">
+                <iframe
+                  src={pdfBlobUrl}
+                  className="w-full h-[500px]"
+                  title="Notification Letter PDF"
+                />
+              </div>
+            ) : (
+              <ScrollArea className="h-[300px] rounded-md border bg-card p-4">
+                <pre className="whitespace-pre-wrap font-mono text-xs">
+                  {decision.letter.body_text}
+                </pre>
+              </ScrollArea>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <Button onClick={handleDownload} className="bg-gradient-to-r from-[#0078D4] to-[#005A9E] hover:from-[#006CBD] hover:to-[#004E8C] text-white shadow-sm">
