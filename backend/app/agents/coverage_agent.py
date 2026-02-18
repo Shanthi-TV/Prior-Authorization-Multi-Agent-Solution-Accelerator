@@ -246,10 +246,13 @@ async def run_coverage_review(request_data: dict, clinical_findings: dict) -> di
         if k != "literature_support"
     }
     lit = clinical_findings.get("literature_support", [])
-    if lit:
+    if isinstance(lit, dict):
+        lit = [lit]  # Agent returned a single dict instead of a list
+    if isinstance(lit, list) and lit:
         clinical_summary["literature_support"] = [
             {"title": r.get("title", ""), "relevance": r.get("relevance", "")}
             for r in lit[:5]
+            if isinstance(r, dict)
         ]
 
     prompt = f"""Assess coverage for this prior authorization request.
