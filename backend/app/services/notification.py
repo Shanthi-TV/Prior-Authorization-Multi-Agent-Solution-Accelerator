@@ -42,6 +42,11 @@ def generate_approval_letter(
     summary: str,
     insurance_id: str = "",
     policy_references: list[str] | None = None,
+    confidence: float = 0,
+    confidence_level: str = "",
+    clinical_rationale: str = "",
+    coverage_criteria_met: list[str] | None = None,
+    documentation_gaps: list[dict] | None = None,
 ) -> dict:
     """Generate an APPROVAL notification letter.
 
@@ -57,6 +62,30 @@ def generate_approval_letter(
         refs = "\n".join(f"  - {ref}" for ref in policy_references)
         policy_section = f"\n\nCOVERAGE POLICY REFERENCE:\n{refs}"
 
+    confidence_section = ""
+    if confidence_level:
+        confidence_section = f"\n\nCONFIDENCE: {confidence_level} ({int(confidence * 100)}%)"
+
+    criteria_section = ""
+    if coverage_criteria_met:
+        items = "\n".join(f"  - {c}" for c in coverage_criteria_met)
+        criteria_section = f"\n\nCOVERAGE CRITERIA MET:\n{items}"
+
+    rationale_section = ""
+    if clinical_rationale:
+        rationale_section = f"\n\nCLINICAL RATIONALE:\n{clinical_rationale}"
+
+    gaps_section = ""
+    if documentation_gaps:
+        items = []
+        for gap in documentation_gaps:
+            what = gap.get("what", "") or gap.get("description", "")
+            critical = gap.get("critical", False)
+            label = "REQUIRED" if critical else "Non-critical"
+            items.append(f"  - [{label}] {what}")
+        if items:
+            gaps_section = "\n\nDOCUMENTATION NOTES:\n" + "\n".join(items)
+
     body = f"""{_DISCLAIMER_HEADER}
 
 ======================================================
@@ -66,7 +95,7 @@ PRIOR AUTHORIZATION APPROVAL NOTIFICATION
 Authorization Number: {authorization_number}
 Date: {today.isoformat()}
 
-DECISION: ** APPROVED **
+DECISION: ** APPROVED **{confidence_section}
 
 Dear {provider_name} (NPI: {provider_npi}),
 
@@ -86,7 +115,7 @@ AUTHORIZATION PERIOD:
   Expiration Date: {expiration.isoformat()}{policy_section}
 
 CLINICAL SUMMARY:
-{summary}
+{summary}{rationale_section}{criteria_section}{gaps_section}
 
 TERMS AND CONDITIONS:
 This authorization is valid for the services described above during the
@@ -127,6 +156,11 @@ def generate_pend_letter(
     summary: str,
     insurance_id: str = "",
     policy_references: list[str] | None = None,
+    confidence: float = 0,
+    confidence_level: str = "",
+    clinical_rationale: str = "",
+    coverage_criteria_met: list[str] | None = None,
+    coverage_criteria_not_met: list[str] | None = None,
 ) -> dict:
     """Generate a PEND (request for additional information) notification letter.
 
@@ -136,10 +170,9 @@ def generate_pend_letter(
     today = date.today()
     deadline = today + timedelta(days=30)
 
-    # Build missing info section
+    # Build missing info section from structured documentation_gaps only
+    # (missing_documentation from synthesis duplicates the same items)
     missing_items = []
-    for item in missing_documentation:
-        missing_items.append(f"  - {item}")
     for gap in documentation_gaps:
         what = gap.get("what", "") or gap.get("description", "")
         request_text = gap.get("request", "")
@@ -157,6 +190,24 @@ def generate_pend_letter(
         refs = "\n".join(f"  - {ref}" for ref in policy_references)
         policy_section = f"\n\nCOVERAGE POLICY REFERENCE:\n{refs}"
 
+    confidence_section = ""
+    if confidence_level:
+        confidence_section = f"\n\nCONFIDENCE: {confidence_level} ({int(confidence * 100)}%)"
+
+    rationale_section = ""
+    if clinical_rationale:
+        rationale_section = f"\n\nCLINICAL RATIONALE:\n{clinical_rationale}"
+
+    criteria_met_section = ""
+    if coverage_criteria_met:
+        items = "\n".join(f"  - {c}" for c in coverage_criteria_met)
+        criteria_met_section = f"\n\nCOVERAGE CRITERIA MET:\n{items}"
+
+    criteria_not_met_section = ""
+    if coverage_criteria_not_met:
+        items = "\n".join(f"  - {c}" for c in coverage_criteria_not_met)
+        criteria_not_met_section = f"\n\nCOVERAGE CRITERIA NOT MET:\n{items}"
+
     appeal_rights = (
         f"If you disagree with this request for additional information, "
         f"you may submit a written appeal within 30 days of this notice. "
@@ -173,7 +224,7 @@ PRIOR AUTHORIZATION - REQUEST FOR ADDITIONAL INFORMATION
 Reference Number: {authorization_number}
 Date: {today.isoformat()}
 
-DECISION: ** PEND FOR REVIEW **
+DECISION: ** PEND FOR REVIEW **{confidence_section}
 
 Dear {provider_name} (NPI: {provider_npi}),
 
@@ -189,7 +240,7 @@ REQUESTED SERVICES:
   Diagnosis Code(s): {', '.join(diagnosis_codes)}{policy_section}
 
 CLINICAL SUMMARY:
-{summary}
+{summary}{rationale_section}{criteria_met_section}{criteria_not_met_section}
 
 ADDITIONAL DOCUMENTATION REQUIRED:
 {missing_section}
@@ -448,15 +499,78 @@ def generate_letter_pdf(letter_dict: dict) -> str:
                        new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(4)
 
+    # ── Clinical rationale ────────────────────────────────────────────
+    rationale = letter_dict.get("clinical_rationale", "")
+    if rationale:
+        _section_heading(pdf, "Clinical Rationale")
+        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_text_color(*_TEXT)
+        pdf.multi_cell(0, 4.5, _safe(rationale),
+                       new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(4)
+
+    # ── Coverage criteria met ─────────────────────────────────────────
+    criteria_met = letter_dict.get("coverage_criteria_met", [])
+    criteria_not_met = letter_dict.get("coverage_criteria_not_met", [])
+    if criteria_met or criteria_not_met:
+        _section_heading(pdf, "Coverage Criteria Evaluation")
+        if criteria_met:
+            pdf.set_font("Helvetica", "B", 8.5)
+            pdf.set_text_color(*_GREEN_BG)
+            pdf.cell(0, 5, "Criteria Met:",
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_text_color(*_TEXT)
+            for item in criteria_met:
+                pdf.set_x(12)
+                pdf.set_font("Helvetica", "", 8.5)
+                pdf.cell(4, 5, "-")
+                pdf.multi_cell(0, 5, _safe(item),
+                               new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        if criteria_not_met:
+            pdf.ln(2)
+            pdf.set_font("Helvetica", "B", 8.5)
+            pdf.set_text_color(*_RED)
+            pdf.cell(0, 5, "Criteria Not Met:",
+                     new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.set_text_color(*_TEXT)
+            for item in criteria_not_met:
+                pdf.set_x(12)
+                pdf.set_font("Helvetica", "", 8.5)
+                pdf.cell(4, 5, "-")
+                pdf.multi_cell(0, 5, _safe(item),
+                               new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.ln(4)
+
+    # ── Documentation notes (for approval — non-critical gaps) ────────
+    if is_approval:
+        doc_gaps = letter_dict.get("documentation_gaps", [])
+        if doc_gaps:
+            _section_heading(pdf, "Documentation Notes")
+            pdf.set_font("Helvetica", "I", 8)
+            pdf.set_text_color(*_TEXT_LIGHT)
+            pdf.multi_cell(
+                0, 4,
+                "The following non-critical items were noted during review. "
+                "These do not affect this authorization but may be useful "
+                "for future submissions.",
+                new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+            )
+            pdf.set_text_color(*_TEXT)
+            pdf.ln(2)
+            for gap in doc_gaps:
+                what = (gap.get("what", "") or gap.get("description", "")) if isinstance(gap, dict) else str(gap)
+                pdf.set_x(12)
+                pdf.set_font("Helvetica", "", 8.5)
+                pdf.cell(4, 5, "-")
+                pdf.multi_cell(0, 5, _safe(what),
+                               new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.ln(4)
+
     # ── Additional documentation required (pend) ───────────────────────
     if not is_approval:
-        missing_docs = letter_dict.get("missing_documentation", [])
         doc_gaps = letter_dict.get("documentation_gaps", [])
-        if missing_docs or doc_gaps:
+        if doc_gaps:
             _section_heading(pdf, "Additional Documentation Required")
-
-            for item in missing_docs:
-                _bullet_item(pdf, item)
 
             for gap in doc_gaps:
                 what = (gap.get("what", "") or gap.get("description", "")) if isinstance(gap, dict) else str(gap)

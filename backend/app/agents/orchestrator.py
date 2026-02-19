@@ -573,7 +573,22 @@ def _generate_audit_justification(
     lines.append("## 5. Decision Rationale")
     lines.append("")
     lines.append(f"**Decision:** {recommendation}")
-    lines.append(f"**Gate:** {synthesis.get('decision_gate', 'N/A')}")
+    # Render decision gates — field may contain pipe-separated gates
+    gate_raw = synthesis.get("decision_gate", "N/A")
+    gate_parts = [g.strip() for g in str(gate_raw).split("|") if g.strip()]
+    if len(gate_parts) > 1:
+        lines.append("")
+        lines.append("**Decision Gates:**")
+        for gp in gate_parts:
+            # Extract gate label (e.g. "GATE 1 (Provider)") and result
+            if ": PASS" in gp.upper():
+                lines.append(f"- [PASS] {gp}")
+            elif ": FAIL" in gp.upper():
+                lines.append(f"- [FAIL] {gp}")
+            else:
+                lines.append(f"- {gp}")
+    else:
+        lines.append(f"**Gate:** {gate_raw}")
     lines.append(f"**Confidence:** {confidence_level} ({int(confidence * 100)}%)")
     lines.append("")
     lines.append(synthesis.get("clinical_rationale", "No rationale provided."))
@@ -589,8 +604,7 @@ def _generate_audit_justification(
 
     # --- Section 6: Documentation Gaps ---
     gaps = coverage_result.get("documentation_gaps", [])
-    missing = synthesis.get("missing_documentation", [])
-    if gaps or missing:
+    if gaps:
         lines.append("## 6. Documentation Gaps")
         lines.append("")
         for g in gaps:
@@ -601,8 +615,6 @@ def _generate_audit_justification(
                     lines.append(f"  Request: {g['request']}")
             else:
                 lines.append(f"- {str(g)}")
-        for m in missing:
-            lines.append(f"- {str(m)}")
         lines.append("")
 
     # --- Section 7: Audit Trail ---

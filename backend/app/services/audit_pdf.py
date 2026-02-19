@@ -589,8 +589,41 @@ def generate_audit_justification_pdf(
     _section_heading(pdf, 5, "Decision Rationale")
 
     _kv(pdf, "Decision", recommendation.upper(), bold_value=True)
-    _kv(pdf, "Decision Gate", synthesis.get("decision_gate", "N/A"))
     _kv(pdf, "Confidence", f"{confidence_level} ({int(confidence * 100)}%)")
+
+    # Render decision gates — the field may contain pipe-separated gates
+    gate_raw = synthesis.get("decision_gate", "N/A")
+    gate_parts = [g.strip() for g in str(gate_raw).split("|") if g.strip()]
+    if len(gate_parts) > 1:
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_x(10)
+        pdf.cell(0, 6, "Decision Gates:")
+        pdf.ln(5)
+        for gp in gate_parts:
+            is_pass = "PASS" in gp.upper()
+            pdf.set_x(10)
+            pdf.set_font("Helvetica", "B", 9)
+            if is_pass:
+                pdf.set_text_color(*_GREEN_TEXT)
+                pdf.cell(5, 5, "-")
+                pdf.cell(15, 5, "[PASS]")
+            else:
+                pdf.set_text_color(*_RED_TEXT)
+                pdf.cell(5, 5, "-")
+                pdf.cell(15, 5, "[FAIL]")
+            pdf.set_text_color(*_BLACK)
+            pdf.set_font("Helvetica", "", 9)
+            # Remove redundant PASS/FAIL prefix from text
+            gate_text = gp
+            for prefix in ("PASS - ", "PASS -", "FAIL - ", "FAIL -"):
+                idx = gate_text.upper().find(prefix)
+                if idx != -1:
+                    gate_text = gate_text[idx + len(prefix):]
+                    break
+            pdf.multi_cell(0, 5, _safe_str(gate_text))
+    else:
+        _kv(pdf, "Decision Gate", gate_raw)
 
     pdf.ln(2)
     rationale = synthesis.get("clinical_rationale", "No rationale provided.")
@@ -612,8 +645,7 @@ def generate_audit_justification_pdf(
     # Section 6: Documentation Gaps
     # =================================================================
     gaps = coverage_result.get("documentation_gaps", [])
-    missing = synthesis.get("missing_documentation", [])
-    if gaps or missing:
+    if gaps:
         _check_page_space(pdf, 30)
         _section_heading(pdf, 6, "Documentation Gaps")
 
@@ -637,9 +669,6 @@ def generate_audit_justification_pdf(
                     pdf.set_font("Helvetica", "I", 8)
                     pdf.multi_cell(0, 4, _safe_str(f"Action: {g['request']}"))
                     pdf.set_font("Helvetica", "", 9)
-
-        for m in missing:
-            _bullet(pdf, m)
 
         pdf.ln(3)
 

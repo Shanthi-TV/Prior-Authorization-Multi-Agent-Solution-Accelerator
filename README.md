@@ -216,7 +216,9 @@ confidence scoring, progressive gate evaluation, and structured audit trails.
    Either action calls `POST /api/decision`, which generates an
    authorization number (`PA-YYYYMMDD-XXXXX`) and a notification letter
    (approval letter with 90-day validity or pend letter with 30-day
-   documentation deadline and appeal rights). Both a plain-text preview and
+   documentation deadline and appeal rights). The notification letter
+   includes full justification data: clinical rationale, coverage criteria
+   evaluation, and documentation notes. Both a plain-text preview and
    a professionally formatted **PDF** (generated via `fpdf2`) are included.
    The PDF can be downloaded directly from the Decision Panel.
 
@@ -451,8 +453,10 @@ criterion tables (green/red/amber), confidence bars, and branded headers/footers
 2. **Medical Necessity Assessment** — provider info, coverage policies, clinical evidence summary, Literature Support (PubMed references with relevance), Relevant Clinical Trials (ClinicalTrials.gov with status)
 3. **Criterion-by-Criterion Evaluation** — each criterion with status, confidence, evidence
 4. **Validation Checks** — provider NPI, diagnosis codes, compliance checklist
-5. **Decision Rationale** — gate, confidence, supporting facts
-6. **Documentation Gaps** — critical and non-critical gaps with requests
+5. **Decision Rationale** — decision gates (each rendered on its own line with
+   color-coded `[PASS]`/`[FAIL]` labels), confidence, supporting facts
+6. **Documentation Gaps** — structured gaps from Coverage Agent only (no
+   duplication with `missing_documentation`), critical/non-critical labels
 7. **Audit Trail** — data sources, timestamps, confidence metrics
 8. **Regulatory Compliance** — decision policy and requirements
 
@@ -922,16 +926,19 @@ content of their corresponding SKILL.md files.
 
 Edit `backend/app/services/notification.py` to change letter templates.
 The `generate_approval_letter()` and `generate_pend_letter()` functions
-accept `insurance_id` and `policy_references` parameters and produce
-structured text with authorization details, insurance member ID, coverage
-policy references, validity periods, and appeal rights. The
+accept `insurance_id`, `policy_references`, `confidence`, `confidence_level`,
+`clinical_rationale`, `coverage_criteria_met`, `coverage_criteria_not_met`,
+and `documentation_gaps` parameters and produce structured text with
+authorization details, insurance member ID, coverage policy references,
+clinical justification data, validity periods, and appeal rights. The
 `generate_letter_pdf()` function renders a professionally formatted PDF
 using `fpdf2` with color-coded titles, section headings, insurance ID
-under patient information, a coverage policy reference section, and an
-AI-draft disclaimer watermark. Modify the templates to match your
-organization's letterhead format, add additional fields, or change
-validity periods (default: 90 days for approvals, 30 days for pend
-documentation deadlines).
+under patient information, a coverage policy reference section, clinical
+rationale, coverage criteria evaluation (green/red labels), documentation
+notes, and an AI-draft disclaimer watermark. Modify the templates to
+match your organization's letterhead format, add additional fields, or
+change validity periods (default: 90 days for approvals, 30 days for
+pend documentation deadlines).
 
 ### Add CPT/HCPCS codes to the lookup table
 
@@ -1576,10 +1583,15 @@ adapted as an API-driven workflow instead of file-based waypoints:
 **Notification letter types:**
 - **Approval** — includes authorization number, validity period (90 days),
   procedure/diagnosis summary, insurance ID, coverage policy references,
-  standard terms, and disclaimer
-- **Pend** — includes missing documentation list (consolidated from
-  `missing_documentation` and `documentation_gaps` with criticality labels),
-  insurance ID, coverage policy references, 30-day deadline, and appeal rights
+  confidence level with percentage, **clinical rationale** (detailed
+  evidence-based reasoning), **coverage criteria evaluation** (list of
+  criteria met with green labels), **documentation notes** (non-critical
+  gaps with explanatory context), standard terms, and disclaimer
+- **Pend** — includes confidence level, clinical rationale, coverage
+  criteria met and not met, missing documentation list (consolidated from
+  structured `documentation_gaps` with criticality labels — no duplication
+  with `missing_documentation`), insurance ID, coverage policy references,
+  30-day deadline, and appeal rights
 
 **PDF generation** (`fpdf2`):
 - Custom `_LetterPDF` subclass with branded header ("PRIOR AUTHORIZATION —
@@ -1588,8 +1600,10 @@ adapted as an API-driven workflow instead of file-based waypoints:
 - Color-coded titles: green tint for approvals, amber tint for pends
 - Structured sections: patient/provider info (with insurance ID), approved/requested
   services, coverage policy references, authorization period, clinical summary,
-  missing documentation (pend only), deadline (pend only), appeal rights, terms
-  and conditions, disclaimer watermark bar
+  **clinical rationale**, **coverage criteria evaluation** (green "Criteria Met"
+  and red "Criteria Not Met" labels), **documentation notes** (approval: non-critical
+  gaps with explanatory intro; pend: all gaps with REQUIRED/Requested tags),
+  deadline (pend only), appeal rights, terms and conditions, disclaimer watermark bar
 - Base64-encoded and included in the `DecisionResponse.letter.pdf_base64`
   field for JSON transport — no separate download endpoint needed
 - Frontend decodes base64 → `Uint8Array` → `Blob` → `URL.createObjectURL`

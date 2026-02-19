@@ -77,6 +77,10 @@ async def submit_decision(request: DecisionRequest):
             provider_name = pv["name"]
 
     # Common kwargs for letter generation
+    documentation_gaps = [
+        g if isinstance(g, dict) else {}
+        for g in review_response.get("documentation_gaps", [])
+    ]
     common_kwargs = {
         "authorization_number": auth_number,
         "patient_name": request_data.get("patient_name", ""),
@@ -88,6 +92,11 @@ async def submit_decision(request: DecisionRequest):
         "summary": review_response.get("summary", ""),
         "insurance_id": request_data.get("insurance_id", ""),
         "policy_references": review_response.get("policy_references", []),
+        "confidence": review_response.get("confidence", 0),
+        "confidence_level": review_response.get("confidence_level", ""),
+        "clinical_rationale": review_response.get("clinical_rationale", ""),
+        "coverage_criteria_met": review_response.get("coverage_criteria_met", []),
+        "documentation_gaps": documentation_gaps,
     }
 
     # Generate notification letter
@@ -98,10 +107,7 @@ async def submit_decision(request: DecisionRequest):
             letter_dict = generate_pend_letter(
                 **common_kwargs,
                 missing_documentation=review_response.get("missing_documentation", []),
-                documentation_gaps=[
-                    g if isinstance(g, dict) else {}
-                    for g in review_response.get("documentation_gaps", [])
-                ],
+                coverage_criteria_not_met=review_response.get("coverage_criteria_not_met", []),
             )
     except Exception as e:
         logger.error("Letter generation failed: %s", e, exc_info=True)
@@ -118,12 +124,12 @@ async def submit_decision(request: DecisionRequest):
     letter_dict["summary"] = review_response.get("summary", "")
     letter_dict["insurance_id"] = request_data.get("insurance_id", "")
     letter_dict["policy_references"] = review_response.get("policy_references", [])
+    letter_dict["clinical_rationale"] = review_response.get("clinical_rationale", "")
+    letter_dict["coverage_criteria_met"] = review_response.get("coverage_criteria_met", [])
+    letter_dict["coverage_criteria_not_met"] = review_response.get("coverage_criteria_not_met", [])
+    letter_dict["documentation_gaps"] = documentation_gaps
     if final_recommendation != "approve":
         letter_dict["missing_documentation"] = review_response.get("missing_documentation", [])
-        letter_dict["documentation_gaps"] = [
-            g if isinstance(g, dict) else {}
-            for g in review_response.get("documentation_gaps", [])
-        ]
 
     # Generate PDF (may fail on encoding issues — catch gracefully)
     try:
