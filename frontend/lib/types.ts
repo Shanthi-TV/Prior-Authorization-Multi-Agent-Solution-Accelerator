@@ -235,4 +235,5 @@ export interface DecisionResponse {
   override_rationale?: string;
   original_recommendation?: string;
   letter: NotificationLetter;
+  updated_audit_justification_pdf?: string;
 }

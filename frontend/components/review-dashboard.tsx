@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReviewResponse } from "@/lib/types";
+import { useState, useCallback } from "react";
+import type { ReviewResponse, DecisionResponse } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,9 +32,18 @@ interface ReviewDashboardProps {
 }
 
 export function ReviewDashboard({ review }: ReviewDashboardProps) {
+  // Track the audit PDF — updated when a decision (especially an override) returns a new one
+  const [auditPdf, setAuditPdf] = useState<string | undefined>(review.audit_justification_pdf);
+
+  const handleDecision = useCallback((decision: DecisionResponse) => {
+    if (decision.updated_audit_justification_pdf) {
+      setAuditPdf(decision.updated_audit_justification_pdf);
+    }
+  }, []);
+
   function handleDownloadJustification() {
-    if (review.audit_justification_pdf) {
-      const byteChars = atob(review.audit_justification_pdf);
+    if (auditPdf) {
+      const byteChars = atob(auditPdf);
       const byteNumbers = new Uint8Array(byteChars.length);
       for (let i = 0; i < byteChars.length; i++) {
         byteNumbers[i] = byteChars.charCodeAt(i);
@@ -249,7 +259,7 @@ export function ReviewDashboard({ review }: ReviewDashboardProps) {
       )}
 
       {/* Decision panel */}
-      <DecisionPanel review={review} />
+      <DecisionPanel review={review} onDecision={handleDecision} />
 
       {/* Audit trail */}
       {review.audit_trail && (
@@ -312,7 +322,7 @@ export function ReviewDashboard({ review }: ReviewDashboardProps) {
       )}
 
       {/* Download audit justification */}
-      {(review.audit_justification_pdf || review.audit_justification) && (
+      {(auditPdf || review.audit_justification) && (
         <Card className="shadow-sm border border-info/30 bg-gradient-to-r from-info-light/60 to-info-light/30">
           <CardContent className="py-4">
             <div className="flex items-center justify-between">

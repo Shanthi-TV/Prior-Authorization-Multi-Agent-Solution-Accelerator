@@ -227,6 +227,7 @@ class DecisionResponse(BaseModel):
     override_rationale: str | None = None
     original_recommendation: str | None = None
     letter: NotificationLetter
+    updated_audit_justification_pdf: str | None = None  # Regenerated audit PDF with override info
 
 
 class ReviewSummary(BaseModel):

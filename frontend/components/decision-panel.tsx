@@ -23,11 +23,12 @@ import {
 
 interface Props {
   review: ReviewResponse;
+  onDecision?: (decision: DecisionResponse) => void;
 }
 
 type Mode = "initial" | "override" | "submitted";
 
-export function DecisionPanel({ review }: Props) {
+export function DecisionPanel({ review, onDecision }: Props) {
   const [mode, setMode] = useState<Mode>("initial");
   const [reviewerName, setReviewerName] = useState("");
   const [overrideRec, setOverrideRec] = useState<"approve" | "pend_for_review">(
@@ -71,6 +72,7 @@ export function DecisionPanel({ review }: Props) {
       });
       setDecision(resp);
       setMode("submitted");
+      onDecision?.(resp);
       toast.success("Decision recorded", {
         description: `Auth #${resp.authorization_number}`,
       });
@@ -103,6 +105,7 @@ export function DecisionPanel({ review }: Props) {
       });
       setDecision(resp);
       setMode("submitted");
+      onDecision?.(resp);
       toast.success("Override recorded", {
         description: `Auth #${resp.authorization_number}`,
       });

@@ -878,15 +878,18 @@ Generates an authorization number and notification letter.
     "appeal_rights": null,
     "documentation_deadline": null,
     "pdf_base64": "JVBERi0xLjQg..."
-  }
+  },
+  "updated_audit_justification_pdf": "JVBERi0xLjQg..."
 }
 ```
 
 When `was_overridden` is `true`, `override_rationale` and
 `original_recommendation` are included. The notification letter (both
 `body_text` and the PDF in `pdf_base64`) contains a "Clinician Override
-Notice" section, and the stored audit justification PDF is regenerated
-with override details.
+Notice" section. The `updated_audit_justification_pdf` field contains
+a regenerated audit PDF with a new Section 9 ("Clinician Override Record")
+reflecting the override details; the frontend swaps this into the
+audit justification download button in real time.
 ```
 
 **Error responses:**

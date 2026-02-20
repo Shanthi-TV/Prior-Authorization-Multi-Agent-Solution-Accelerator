@@ -221,4 +221,5 @@ async def submit_decision(request: DecisionRequest):
         override_rationale=request.override_rationale if is_overridden else None,
         original_recommendation=original_recommendation if is_overridden else None,
         letter=NotificationLetter(**letter_for_model),
+        updated_audit_justification_pdf=updated_audit_pdf,
     )
