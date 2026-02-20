@@ -548,7 +548,7 @@ prior-auth-maf/
 │       │   ├── orchestrator.py           # Multi-agent coordinator + CPT pre-flight + synthesis + audit + review store
 │       │   └── prior_auth_agent.py       # Single-agent mode (all 5 MCP servers)
 │       ├── services/
-│       │   ├── audit_pdf.py              # Audit justification PDF generation (fpdf2) — 8 color-coded sections
+│       │   ├── audit_pdf.py              # Audit justification PDF generation (fpdf2) — 8 color-coded sections + Section 9 on override
 │       │   ├── cpt_validation.py         # CPT/HCPCS format validation + curated lookup table (~30 codes)
 │       │   └── notification.py           # Auth number generation + approval/pend letter templates + PDF (fpdf2)
 │       ├── tools/
