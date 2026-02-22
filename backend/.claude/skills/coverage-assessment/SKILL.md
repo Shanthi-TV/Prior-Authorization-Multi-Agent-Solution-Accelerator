@@ -5,9 +5,9 @@ description: Verifies provider credentials via NPI MCP, searches Medicare covera
 
 # Coverage Assessment Skill
 
-## Description
+## Goal
 
-Verifies provider credentials via NPI MCP, searches Medicare coverage policies via CMS Coverage MCP, and maps clinical evidence to policy criteria with MET/NOT_MET/INSUFFICIENT assessment, per-criterion confidence scoring, and documentation gap analysis.
+Determine whether the clinical evidence satisfies coverage policy criteria by verifying provider credentials, locating applicable Medicare NCDs/LCDs, and mapping each policy requirement to specific clinical findings with auditable confidence scores.
 
 ## Instructions
 

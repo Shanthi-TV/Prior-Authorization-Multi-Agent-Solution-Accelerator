@@ -5,9 +5,9 @@ description: Extracts clinical data from prior authorization requests, validates
 
 # Clinical Review Skill
 
-## Description
+## Goal
 
-Extracts clinical data from prior authorization requests, validates ICD-10 diagnosis codes via MCP, notes CPT/HCPCS procedure codes (format validation handled by orchestrator pre-flight), searches supporting literature via PubMed and clinical trials, and structures a clinical narrative with per-field confidence scoring.
+Build a validated, evidence-backed clinical profile for each prior authorization request so the downstream Coverage Agent can map clinical findings to policy criteria with confidence.
 
 ## Instructions
 

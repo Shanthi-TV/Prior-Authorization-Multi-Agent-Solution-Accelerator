@@ -5,9 +5,9 @@ description: Synthesizes outputs from Compliance, Clinical, and Coverage agents 
 
 # Synthesis Decision Skill
 
-## Description
+## Goal
 
-Synthesizes outputs from Compliance, Clinical, and Coverage agents into a final APPROVE or PEND recommendation using gate-based evaluation with LENIENT mode policy, weighted confidence scoring, and structured audit trail.
+Produce a single, auditable APPROVE or PEND recommendation by evaluating the combined outputs of the Compliance, Clinical, and Coverage agents through a strict gate-based pipeline, ensuring no request is approved unless all gates pass cleanly.
 
 ## Instructions
 

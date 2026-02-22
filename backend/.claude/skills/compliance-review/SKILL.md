@@ -5,9 +5,9 @@ description: Validates documentation completeness for prior authorization reques
 
 # Compliance Review Skill
 
-## Description
+## Goal
 
-Validates documentation completeness for prior authorization requests by checking an 8-item checklist covering patient information, provider credentials, insurance details, medical codes, and clinical notes quality.
+Ensure every prior authorization request contains all required documentation before it reaches clinical or coverage review, preventing downstream delays caused by missing patient data, invalid provider credentials, absent medical codes, or insufficient clinical notes.
 
 ## Instructions
 
