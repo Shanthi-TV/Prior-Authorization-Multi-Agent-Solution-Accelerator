@@ -361,12 +361,13 @@ prior-auth-maf/
 │       ├── types.ts                      # TypeScript types
 │       └── sample-case.ts               # Demo case data
 │
-├── .devcontainer/                        # Dev Container configuration
-├── .github/                              # Issue templates
+├── .devcontainer/                        # Dev Container + setupEnv.sh
+├── .github/                              # Issue & PR templates, workflows, dependabot
 ├── docs/                                 # Supporting documentation
-├── infra/                                # Azure Bicep IaC modules
+├── infra/                                # Azure Bicep IaC modules + VS Code Web scaffolding
 ├── azure.yaml                            # Azure Developer CLI project
 ├── docker-compose.yml                    # Two-container local dev
+├── next-steps.md                         # Post azd-init guidance
 ├── CODE_OF_CONDUCT.md                    # Microsoft Open Source CoC
 ├── CONTRIBUTING.md                       # Contribution guidelines
 ├── LICENSE                               # MIT License
