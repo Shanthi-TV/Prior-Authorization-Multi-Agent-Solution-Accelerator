@@ -195,11 +195,11 @@ provider must demonstrate that the requested service is **medically necessary** 
 meets the payer's **coverage policy criteria** before care is delivered.
 
 ```mermaid
-flowchart LR
-  A["Provider submits PA request\nFax · Portal · EDI"] --> B["Payer intake\nCompleteness check\nDemographics · Codes · Clinical notes"]
-  B --> C["Clinical review\nMedical necessity assessment\nNCD/LCD + payer policy criteria"]
-  C --> D["Decision\nApprove · Pend · Deny"]
-  C --> E["Additional information requested\nAverage 2–3 round-trips"]
+flowchart TD
+  A["🏥 Provider submits PA request<br/>Fax · Portal · EDI"] --> B["📋 Payer intake<br/>Completeness check<br/>Demographics · Codes · Clinical notes"]
+  B --> C["🔬 Clinical review<br/>Medical necessity assessment<br/>NCD/LCD + payer policy criteria"]
+  C --> D["✅ Decision<br/>Approve · Pend · Deny"]
+  C --> E["📝 Additional information requested<br/>Average 2–3 round-trips"]
   E --> A
 ```
 
