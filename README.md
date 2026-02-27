@@ -153,8 +153,11 @@ The orchestrator coordinates four phases with three specialized agents:
 
 Follow the quick deploy steps on the **[Deployment Guide](./docs/DeploymentGuide.md)** to deploy this solution to your own Azure subscription or run locally with Docker Compose.
 
+| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/amitmukh/prior-auth-maf) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/amitmukh/prior-auth-maf) | [![Deploy with Docker Compose](https://img.shields.io/static/v1?style=for-the-badge&label=Docker%20Compose&message=Deploy&color=blue&logo=docker)](./docs/DeploymentGuide.md#option-a-docker-compose-recommended-for-quick-start) |
+|---|---|---|
+
 > ⚠️ **Important: Check Azure AI Foundry Quota Availability**
-> To ensure sufficient quota is available in your subscription, please follow the [quota check instructions](./docs/DeploymentGuide.md#14-claude-model-quota-check) before you deploy the solution.
+> <br/>To ensure sufficient quota is available in your subscription, please follow the [quota check instructions](./docs/DeploymentGuide.md#14-claude-model-quota-check) before you deploy the solution.
 
 ### Prerequisites & Costs
 

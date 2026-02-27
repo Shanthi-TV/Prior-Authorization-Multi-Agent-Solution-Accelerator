@@ -1,0 +1,37 @@
+{
+  "name": "Prior Auth MAF",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "backend",
+  "workspaceFolder": "/app",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true
+      }
+    }
+  },
+  "forwardPorts": [3000, 8000],
+  "postCreateCommand": "cd /workspaces/prior-auth-maf/backend && pip install -r requirements.txt && cd /workspaces/prior-auth-maf/frontend && npm install",
+  "remoteEnv": {
+    "CLAUDE_CODE_USE_FOUNDRY": "true"
+  }
+}
