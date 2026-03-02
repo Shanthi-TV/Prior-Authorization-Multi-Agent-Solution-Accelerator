@@ -195,7 +195,7 @@ Pricing varies per region and usage, so it isn't possible to predict exact costs
 
 Healthcare organizations processing prior authorization (PA) requests face significant challenges in coordinating complex clinical reviews across multiple departments. They must evaluate medical necessity, verify coverage policies, and produce auditable decisions — often under strict regulatory timelines. Some of the challenges they face include:
 
-- **High volume** — U.S. providers submit ~[300 million PA requests per year](https://www.caqh.org/insights/explorations-in-healthcare-efficiency) (CAQH Index)
+- **High volume** — U.S. providers submit ~[300 million PA requests per year](https://www.caqh.org/insights/caqh-index-report) (CAQH Index)
 - **Manual, time-consuming reviews** — each request takes [15–20 minutes](https://www.ama-assn.org/practice-management/prior-authorization/prior-authorization-physician-survey) of clinician and staff time (AMA, 2024)
 - **Slow turnaround** — average PA decision takes [5–14 business days](https://www.cms.gov/newsroom/fact-sheets/cms-interoperability-and-prior-authorization-final-rule-cms-0057-f)
 - **Inconsistent assessments** — manual reviews are subject to reviewer variability
