@@ -161,10 +161,19 @@ async def submit_review_stream(request: PriorAuthRequest, http_request: Request)
             result = await run_multi_agent_review(
                 request.model_dump(), on_progress=on_progress
             )
+            logger.info("Building review response for %s", request_id)
             response = _build_review_response(request_id, result)
             store_review(request_id, request.model_dump(), response.model_dump())
-            await queue.put({"_type": "result", "data": response.model_dump()})
+            result_data = response.model_dump()
+            result_size = len(json.dumps(result_data, default=str))
+            logger.info(
+                "Queuing result event for %s (%d bytes)",
+                request_id,
+                result_size,
+            )
+            await queue.put({"_type": "result", "data": result_data})
         except Exception as e:
+            logger.exception("Review %s failed: %s", request_id, e)
             await queue.put({"_type": "error", "detail": str(e)})
         finally:
             await queue.put(None)  # Sentinel
@@ -190,6 +199,9 @@ async def submit_review_stream(request: PriorAuthRequest, http_request: Request)
 
                 if event.get("_type") == "result":
                     data = json.dumps(event["data"], default=str)
+                    logger.info(
+                        "Yielding result SSE event (%d bytes)", len(data)
+                    )
                     yield f"event: result\ndata: {data}\n\n"
                 elif event.get("_type") == "error":
                     data = json.dumps({"detail": event["detail"]})

@@ -60,16 +60,13 @@ export function submitReviewStream(
 
       const decoder = new TextDecoder();
       let buffer = "";
+      // eventType must persist across chunks — if "event: result"
+      // arrives at the end of one chunk and "data: ..." in the next,
+      // resetting per-chunk would misroute the result as a progress event.
+      let eventType = "progress";
+      let receivedResult = false;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        let eventType = "progress";
+      const processLines = (lines: string[]) => {
         for (const line of lines) {
           if (line.startsWith("event: ")) {
             eventType = line.slice(7).trim();
@@ -78,19 +75,40 @@ export function submitReviewStream(
             try {
               const parsed = JSON.parse(data);
               if (eventType === "result") {
+                receivedResult = true;
                 onResult(parsed as ReviewResponse);
               } else if (eventType === "error") {
                 onError(parsed.detail || "Unknown error");
               } else {
                 onProgress(parsed as ProgressEvent);
               }
-            } catch {
-              // Skip malformed JSON lines
+            } catch (parseErr) {
+              console.error("[SSE] Failed to parse JSON:", parseErr, "data:", data.slice(0, 200));
             }
-            eventType = "progress"; // Reset for next event
+            eventType = "progress"; // Reset after processing a data line
           }
           // Skip comment lines (": keepalive") and empty lines
         }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        processLines(lines);
+      }
+
+      // Process any remaining data left in the buffer after stream ends
+      if (buffer.trim()) {
+        processLines(buffer.split("\n"));
+      }
+
+      // If the stream completed without a result event, notify the caller
+      if (!receivedResult) {
+        onError("Review stream ended without returning a result. Please try again.");
       }
     } catch (err) {
       if ((err as Error).name !== "AbortError") {
