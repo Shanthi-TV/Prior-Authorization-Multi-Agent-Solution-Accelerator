@@ -137,9 +137,8 @@ Select one of the following options to set up your deployment environment:
 
 | **Tool** | **Version** | **Installation** |
 |----------|-------------|------------------|
-| [Python](https://www.python.org/downloads/) | 3.11+ | Backend runtime |
-| [Node.js](https://nodejs.org/) | 18+ | Frontend build |
-| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | Latest | Container builds |
+| [Python](https://www.python.org/downloads/) | 3.11+ | Backend runtime (local dev only) |
+| [Node.js](https://nodejs.org/) | 18+ | Frontend build (local dev only) |
 | [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) | Latest | Azure resource management |
 | [Azure Developer CLI (azd)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) | 1.18.0+ | Infrastructure deployment |
 | [Git](https://git-scm.com/) | Latest | Repository clone |
@@ -254,12 +253,14 @@ azd up
 4. **Azure Foundry API key** and **endpoint** — from Step 1.3
 
 **What gets deployed:**
-- Azure Container Registry
+- Azure Container Registry (also used for remote image builds — no local Docker required)
 - Azure Container Apps Environment
 - Backend Container App (Python/FastAPI, port 8000)
 - Frontend Container App (Next.js/nginx, port 80)
 - Log Analytics workspace
 - Application Insights
+
+> **Note:** Container images are built remotely on Azure Container Registry, so no local Docker installation is required for deployment. This works on any machine architecture (x86, ARM64) and any OS.
 
 **Expected Duration:** ~10 minutes for initial provisioning + deployment.
 

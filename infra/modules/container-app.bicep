@@ -11,6 +11,9 @@ param env array = []
 param secrets array = []
 param healthCheckPath string = ''
 
+@description('Whether ACR images have been built (if false, uses placeholder image)')
+param useAcrImage bool = false
+
 @description('CPU cores allocated to each container instance')
 param cpu string = '0.5'
 
@@ -63,13 +66,13 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: imageName
-          image: '${containerRegistryLoginServer}/${imageName}:latest'
+          image: useAcrImage ? '${containerRegistryLoginServer}/${imageName}:latest' : 'mcr.microsoft.com/k8se/quickstart:latest'
           resources: {
             cpu: json(cpu)
             memory: memory
           }
           env: env
-          probes: healthCheckPath != '' ? [
+          probes: useAcrImage && healthCheckPath != '' ? [
             {
               type: 'Liveness'
               httpGet: {

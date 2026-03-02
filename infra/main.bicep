@@ -27,6 +27,9 @@ param azureFoundryEndpoint string = ''
 @description('Application Insights connection string (optional)')
 param appInsightsConnectionString string = ''
 
+@description('Whether container images have been built to ACR (set automatically by postprovision hook)')
+param imagesBuilt string = ''
+
 // ── Variables ───────────────────────────────────────────────────────────────
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -96,6 +99,7 @@ module backend './modules/container-app.bicep' = {
     containerRegistryLoginServer: containerRegistry.outputs.loginServer
     imageName: 'backend'
     targetPort: 8000
+    useAcrImage: imagesBuilt == 'true'
     env: [
       { name: 'CLAUDE_CODE_USE_FOUNDRY', value: 'true' }
       { name: 'ANTHROPIC_FOUNDRY_API_KEY', secretRef: 'foundry-api-key' }
@@ -124,7 +128,10 @@ module frontend './modules/container-app.bicep' = {
     containerRegistryLoginServer: containerRegistry.outputs.loginServer
     imageName: 'frontend'
     targetPort: 80
-    env: []
+    useAcrImage: imagesBuilt == 'true'
+    env: [
+      { name: 'BACKEND_URL', value: 'https://${abbrs.appContainerApps}backend-${resourceToken}.${containerAppsEnv.outputs.defaultDomain}' }
+    ]
     secrets: []
     healthCheckPath: '/'
   }
@@ -134,5 +141,7 @@ module frontend './modules/container-app.bicep' = {
 
 output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output BACKEND_CONTAINER_APP_NAME string = backend.outputs.name
+output FRONTEND_CONTAINER_APP_NAME string = frontend.outputs.name
 output frontendUrl string = frontend.outputs.fqdn
 output backendUrl string = backend.outputs.fqdn

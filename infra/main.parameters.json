@@ -16,6 +16,9 @@
     },
     "appInsightsConnectionString": {
       "value": "${APPLICATIONINSIGHTS_CONNECTION_STRING}"
+    },
+    "imagesBuilt": {
+      "value": "${IMAGES_BUILT}"
     }
   }
 }

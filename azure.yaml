@@ -5,30 +5,63 @@ metadata:
 requiredVersions:
   azd: '>= 1.18.0'
 
-services:
-  backend:
-    project: ./backend
-    host: containerapp
-    language: python
-    docker:
-      path: ./Dockerfile
-      context: .
-
-  frontend:
-    project: ./frontend
-    host: containerapp
-    language: js
-    docker:
-      path: ./Dockerfile
-      context: .
-
 hooks:
-  postdeploy:
+  preprovision:
+    windows:
+      run: |
+        # Always provision with placeholder images; postprovision builds real ones
+        azd env set IMAGES_BUILT false
+      shell: pwsh
+    posix:
+      run: |
+        azd env set IMAGES_BUILT false
+      shell: sh
+
+  postprovision:
     windows:
       run: |
         Write-Host ""
         Write-Host "===============================================================" -ForegroundColor Yellow
-        Write-Host " POST-DEPLOYMENT COMPLETE" -ForegroundColor Green
+        Write-Host " BUILDING CONTAINER IMAGES (remote ACR build)" -ForegroundColor Green
+        Write-Host "===============================================================" -ForegroundColor Yellow
+
+        $acrEndpoint = azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT
+        $acrName     = $acrEndpoint -replace '\.azurecr\.io$', ''
+        $rgName      = azd env get-value AZURE_RESOURCE_GROUP
+        $backendApp  = azd env get-value BACKEND_CONTAINER_APP_NAME
+        $frontendApp = azd env get-value FRONTEND_CONTAINER_APP_NAME
+
+        Write-Host ""
+        Write-Host "  Building backend on ACR ($acrName)..." -ForegroundColor White
+        $ErrorActionPreference = 'SilentlyContinue'
+        $backendBuild = az acr build --registry $acrName --image backend:latest --platform linux/amd64 ./backend --no-logs 2>&1
+        $backendExit = $LASTEXITCODE
+        $ErrorActionPreference = 'Continue'
+        if ($backendExit -ne 0) { Write-Host "  ERROR: Backend build failed!" -ForegroundColor Red; exit 1 }
+        Write-Host "  Backend image built successfully" -ForegroundColor Green
+
+        Write-Host "  Building frontend on ACR ($acrName)..." -ForegroundColor White
+        $ErrorActionPreference = 'SilentlyContinue'
+        $frontendBuild = az acr build --registry $acrName --image frontend:latest --platform linux/amd64 ./frontend --no-logs 2>&1
+        $frontendExit = $LASTEXITCODE
+        $ErrorActionPreference = 'Continue'
+        if ($frontendExit -ne 0) { Write-Host "  ERROR: Frontend build failed!" -ForegroundColor Red; exit 1 }
+        Write-Host "  Frontend image built successfully" -ForegroundColor Green
+
+        Write-Host ""
+        Write-Host "  Updating backend container app..." -ForegroundColor White
+        $ErrorActionPreference = 'SilentlyContinue'
+        az containerapp update --name $backendApp --resource-group $rgName --image "$acrEndpoint/backend:latest" --output none 2>&1 | Out-Null
+        az containerapp update --name $frontendApp --resource-group $rgName --image "$acrEndpoint/frontend:latest" --output none 2>&1 | Out-Null
+        $ErrorActionPreference = 'Continue'
+        Write-Host "  Updating frontend container app..." -ForegroundColor White
+
+        # Mark images as built so subsequent provisions use ACR images directly
+        azd env set IMAGES_BUILT true
+
+        Write-Host ""
+        Write-Host "===============================================================" -ForegroundColor Yellow
+        Write-Host " DEPLOYMENT COMPLETE" -ForegroundColor Green
         Write-Host "===============================================================" -ForegroundColor Yellow
         Write-Host ""
         Write-Host " Before using the application, ensure you have:" -ForegroundColor White
@@ -36,8 +69,8 @@ hooks:
         Write-Host "  2. Set AZURE_FOUNDRY_API_KEY and AZURE_FOUNDRY_ENDPOINT" -ForegroundColor White
         Write-Host "     in the backend Container App environment variables" -ForegroundColor White
         Write-Host ""
-        Write-Host "Access your deployed application at:" -ForegroundColor Green
-        Write-Host "   https://$env:frontendUrl" -ForegroundColor Cyan
+        $frontendUrl = azd env get-value frontendUrl
+        Write-Host " Application URL: https://$frontendUrl" -ForegroundColor Cyan
         Write-Host ""
       shell: pwsh
       interactive: true
@@ -46,17 +79,47 @@ hooks:
         Green='\033[0;32m'
         Yellow='\033[1;33m'
         Blue='\033[0;34m'
+        Red='\033[0;31m'
+        White='\033[1;37m'
         NC='\033[0m'
 
         printf "\n"
         printf "${Yellow}===============================================================\n"
-        printf "${Green} POST-DEPLOYMENT COMPLETE\n"
+        printf "${Green} BUILDING CONTAINER IMAGES (remote ACR build)\n"
+        printf "${Yellow}===============================================================${NC}\n"
+
+        ACR_ENDPOINT=$(azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT)
+        ACR_NAME=$(echo "$ACR_ENDPOINT" | sed 's/\.azurecr\.io$//')
+        RG_NAME=$(azd env get-value AZURE_RESOURCE_GROUP)
+        BACKEND_APP=$(azd env get-value BACKEND_CONTAINER_APP_NAME)
+        FRONTEND_APP=$(azd env get-value FRONTEND_CONTAINER_APP_NAME)
+
+        printf "\n${White}  Building backend on ACR (%s)...${NC}\n" "$ACR_NAME"
+        az acr build --registry "$ACR_NAME" --image backend:latest --platform linux/amd64 ./backend --no-logs 2>/dev/null
+        if [ $? -ne 0 ]; then printf "${Red}  ERROR: Backend build failed!${NC}\n"; exit 1; fi
+        printf "${Green}  Backend image built successfully${NC}\n"
+
+        printf "${White}  Building frontend on ACR (%s)...${NC}\n" "$ACR_NAME"
+        az acr build --registry "$ACR_NAME" --image frontend:latest --platform linux/amd64 ./frontend --no-logs 2>/dev/null
+        if [ $? -ne 0 ]; then printf "${Red}  ERROR: Frontend build failed!${NC}\n"; exit 1; fi
+        printf "${Green}  Frontend image built successfully${NC}\n"
+
+        printf "\n${White}  Updating backend container app...${NC}\n"
+        az containerapp update --name "$BACKEND_APP" --resource-group "$RG_NAME" --image "$ACR_ENDPOINT/backend:latest" --output none 2>/dev/null
+        printf "${White}  Updating frontend container app...${NC}\n"
+        az containerapp update --name "$FRONTEND_APP" --resource-group "$RG_NAME" --image "$ACR_ENDPOINT/frontend:latest" --output none 2>/dev/null
+
+        azd env set IMAGES_BUILT true
+
+        printf "\n"
+        printf "${Yellow}===============================================================\n"
+        printf "${Green} DEPLOYMENT COMPLETE\n"
         printf "${Yellow}===============================================================${NC}\n\n"
         printf " Before using the application, ensure you have:\n"
         printf "  1. Deployed a Claude model in Azure AI Foundry\n"
         printf "  2. Set AZURE_FOUNDRY_API_KEY and AZURE_FOUNDRY_ENDPOINT\n"
         printf "     in the backend Container App environment variables\n\n"
-        printf "Access your deployed application at:\n"
-        printf "   ${Blue}https://%s${NC}\n\n" "$frontendUrl"
+        FRONTEND_URL=$(azd env get-value frontendUrl)
+        printf " Application URL: ${Blue}https://%s${NC}\n\n" "$FRONTEND_URL"
       shell: sh
       interactive: true
