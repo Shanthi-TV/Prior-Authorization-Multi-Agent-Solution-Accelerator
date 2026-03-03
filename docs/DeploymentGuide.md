@@ -245,6 +245,8 @@ azd auth login --tenant-id <tenant-id>
 azd up
 ```
 
+> **💡 Automated Pre-Flight Checks:** Before provisioning any Azure resources, `azd up` automatically runs a 7-step verification that checks Azure CLI authentication, subscription permissions, required CLI extensions, project files, soft-deleted Key Vault conflicts, resource provider registration, and resource quotas. If any issues are found, you'll see clear guidance on how to fix them — saving you from a failed deployment after a long wait.
+
 **During deployment, you'll be prompted for:**
 1. **Environment name** (e.g., `prior-auth-dev`)
 2. **Azure subscription** selection
