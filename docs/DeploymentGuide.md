@@ -389,17 +389,28 @@ You can register the multi-agent system in **Microsoft Foundry Control Plane** f
 
 #### Architecture
 
-The Prior Auth system uses a fan-out/fan-in orchestration pattern where the **Orchestrator** is the only externally-callable agent. Sub-agents (Clinical, Compliance, Coverage, Synthesis) are invoked internally and have no independent endpoints.
+The Prior Auth system uses a fan-out/fan-in orchestration pattern. The **Orchestrator** is the production entry point, and each sub-agent also has a dedicated endpoint for evaluation, red-teaming, and optional individual Foundry registration.
 
 ```
-Client → Foundry AI Gateway (proxy) → Backend /review endpoint → Orchestrator
-                                                                    ├── Clinical Agent (internal)
-                                                                    ├── Compliance Agent (internal)
-                                                                    ├── Coverage Agent (internal)
-                                                                    └── Synthesis Agent (internal)
+Client → Foundry AI Gateway (proxy) → Backend /api/review/stream → Orchestrator
+                                                                      ├── Clinical Agent  (in-process)
+                                                                      ├── Compliance Agent (in-process)
+                                                                      ├── Coverage Agent   (in-process)
+                                                                      └── Synthesis Agent  (in-process)
+
+Per-agent endpoints (eval / red-team / optional Foundry registration):
+  POST /api/agents/clinical
+  POST /api/agents/compliance
+  POST /api/agents/coverage
+  POST /api/agents/synthesis
 ```
 
-**Why register only the Orchestrator:** Since all sub-agents are invoked internally by the Orchestrator, registering it as a single custom agent gives you a centralized kill switch for the entire multi-agent pipeline. Blocking the Orchestrator in Foundry effectively blocks all sub-agents — which is the correct behavior because the sub-agents have no independent use outside the orchestrated workflow. Sub-agent activity is visible as child spans in the Orchestrator's trace detail view.
+**Registration options:**
+
+| Strategy | When to use |
+|----------|-------------|
+| **Orchestrator only** (recommended) | Single kill switch for the entire pipeline. Blocking the Orchestrator blocks all sub-agents. Simplest to manage. |
+| **Orchestrator + individual agents** | Needed when you want per-agent evaluation, red-teaming, or independent governance (e.g., block only the Coverage Agent while the rest continue). |
 
 #### Prerequisites
 
@@ -439,7 +450,7 @@ Foundry Control Plane uses the Application Insights resource associated with you
 
 | Field | Value |
 |-------|-------|
-| **Agent URL** | `https://<your-backend-fqdn>/review` (the backend Container App URL) |
+| **Agent URL** | `https://<your-backend-fqdn>/api/review/stream` (the backend Container App URL) |
 | **Protocol** | HTTP |
 | **OpenTelemetry Agent ID** | `prior-auth-orchestrator` |
 | **Admin portal URL** | *(optional)* Your Azure Portal resource group URL |
@@ -450,6 +461,21 @@ Foundry Control Plane uses the Application Insights resource associated with you
 4. Save the registration
 
 > **Finding your backend URL:** Run `azd show` and look for the `backendUrl` output, or check the Azure Portal under your resource group → Backend Container App → **Application Url**.
+
+#### Step 3b: Register Individual Agents (Optional)
+
+If you need per-agent evaluation, red-teaming, or independent governance controls, register each sub-agent as a separate custom agent:
+
+| Agent Name | Agent URL | OpenTelemetry Agent ID |
+|------------|-----------|------------------------|
+| Prior Auth Clinical Reviewer | `https://<backend-fqdn>/api/agents/clinical` | `prior-auth-clinical` |
+| Prior Auth Compliance Validator | `https://<backend-fqdn>/api/agents/compliance` | `prior-auth-compliance` |
+| Prior Auth Coverage Assessor | `https://<backend-fqdn>/api/agents/coverage` | `prior-auth-coverage` |
+| Prior Auth Synthesis Decision | `https://<backend-fqdn>/api/agents/synthesis` | `prior-auth-synthesis` |
+
+Repeat the Step 3 registration flow for each agent above. All agents share the same backend Container App — no additional infrastructure is needed.
+
+> **Tip:** See [API Reference — Per-Agent Endpoints](./api-reference.md#per-agent-endpoints) for request/response schemas and curl examples.
 
 #### Step 4: Update Client Configuration
 

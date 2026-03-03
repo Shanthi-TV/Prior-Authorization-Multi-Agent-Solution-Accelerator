@@ -217,6 +217,89 @@ contains a regenerated audit PDF with Section 9 ("Clinician Override Record").
 
 ---
 
+## Per-Agent Endpoints
+
+These endpoints expose each agent individually for **Foundry Control Plane registration**, per-agent evaluation, red-teaming, and future microservices migration. The production orchestrator (`POST /api/review/stream`) continues to call agents in-process — these endpoints are for external callers only.
+
+All per-agent responses share a common envelope:
+
+```json
+{
+  "agent": "<agent-name>",
+  "started": "2026-02-13T10:30:00Z",
+  "completed": "2026-02-13T10:30:12Z",
+  "result": { ... }
+}
+```
+
+### `POST /api/agents/clinical`
+
+Run the **Clinical Reviewer Agent** in isolation. Returns diagnosis validation, clinical extraction, literature support, clinical trials, and clinical summary.
+
+**Request body:** Same `PriorAuthRequest` as `POST /api/review`.
+
+**Response `result`:** Same structure as `agent_results.clinical` in the full review response.
+
+---
+
+### `POST /api/agents/compliance`
+
+Run the **Compliance Validation Agent** in isolation. Returns the compliance checklist, documentation status, and missing items.
+
+**Request body:** Same `PriorAuthRequest` as `POST /api/review`.
+
+**Response `result`:** Same structure as `agent_results.compliance` in the full review response.
+
+---
+
+### `POST /api/agents/coverage`
+
+Run the **Coverage Assessment Agent** in isolation. Requires clinical findings from a prior Clinical Agent run (or test fixtures).
+
+**Request body:**
+
+```json
+{
+  "request": {
+    "patient_name": "John Smith",
+    "patient_dob": "1955-03-15",
+    "provider_npi": "1234567890",
+    "diagnosis_codes": ["M17.11"],
+    "procedure_codes": ["27447"],
+    "clinical_notes": "...",
+    "insurance_id": "ABC123456"
+  },
+  "clinical_findings": {
+    "diagnosis_validation": [{"code": "M17.11", "valid": true}],
+    "clinical_extraction": {"chief_complaint": "bilateral knee OA"}
+  }
+}
+```
+
+**Response `result`:** Same structure as `agent_results.coverage` in the full review response.
+
+---
+
+### `POST /api/agents/synthesis`
+
+Run the **Synthesis Decision Agent** in isolation. Requires all three upstream agent results (or test fixtures).
+
+**Request body:**
+
+```json
+{
+  "request": { ... },
+  "compliance_result": { ... },
+  "clinical_result": { ... },
+  "coverage_result": { ... },
+  "cpt_validation": null
+}
+```
+
+**Response `result`:** The final synthesis output (recommendation, confidence, decision gates, rationale).
+
+---
+
 ## Key Dependencies
 
 | Package | Purpose |
