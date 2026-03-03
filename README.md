@@ -2,8 +2,8 @@
 
 A **multi-agent** AI-assisted prior authorization (PA) review application built
 with the **Microsoft Agent Framework**, **Claude Agent SDK**, and **Anthropic
-& DeepSense Healthcare MCP Servers**. Three specialized agents — Compliance, Clinical
-Reviewer, and Coverage — work in parallel and sequence, coordinated by an
+& DeepSense Healthcare MCP Servers**. Four specialized agents — Compliance, Clinical
+Reviewer, Coverage, and Synthesis — work in parallel and sequence, coordinated by an
 orchestrator that applies a gate-based decision rubric and produces a final
 recommendation with confidence scoring and an audit justification document.
 
@@ -55,7 +55,7 @@ decisions with full audit transparency.
 
 ### Agentic architecture
 
-The orchestrator coordinates four phases with three specialized agents:
+The orchestrator coordinates four phases with four specialized agents:
 
 |![Agentic Architecture](./docs/images/readme/agentic-architecture.png)|
 |---|
@@ -83,6 +83,7 @@ The orchestrator coordinates four phases with three specialized agents:
 
   - Compliance and Clinical agents run concurrently via `asyncio.gather`, reducing wall-clock time from 20+ minutes to under 2 minutes per case
   - Coverage Agent runs sequentially after clinical findings are available
+  - Synthesis Agent executes the gate-based rubric to generate the final recommendation and confidence
   - Four-phase pipeline: Pre-flight → Parallel → Sequential → Synthesis → Audit
 </details>
 

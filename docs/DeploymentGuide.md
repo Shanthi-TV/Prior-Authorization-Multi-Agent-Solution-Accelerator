@@ -374,7 +374,7 @@ If you configured Azure Application Insights:
 
 ### 5.4 Register Agents in Foundry Control Plane (Optional)
 
-You can register the multi-agent system in **Microsoft Foundry Control Plane** for centralized agent lifecycle management, monitoring, and governance. This is an optional enhancement that adds operational visibility without requiring any code changes.
+You can optionally register the multi-agent system in **Microsoft Foundry Control Plane** for centralized observability, fleet monitoring, and organizational inventory. Registration lets you view agent traces, runs, and error rates in the Foundry portal — it does **not** change the app's runtime behavior or traffic flow. The frontend continues to call the backend Container App directly regardless of whether agents are registered.
 
 #### What You Get
 
@@ -383,22 +383,30 @@ You can register the multi-agent system in **Microsoft Foundry Control Plane** f
 | Agent traces in App Insights | ✅ | ✅ |
 | Container logs in Log Analytics | ✅ | ✅ |
 | Agent listed in Foundry portal | ❌ | ✅ |
-| Block/Unblock agent from Foundry | ❌ | ✅ |
+| Block/Unblock agent from Foundry | ❌ | ✅ * |
 | Fleet monitoring dashboard (runs, error rates, cost) | ❌ | ✅ |
 | Centralized trace viewer in Foundry | ❌ | ✅ |
 
+> **\* Important — Block/Unblock limitation:** Block/Unblock only affects traffic routed through the Foundry AI Gateway proxy URL. In the default deployment, the frontend calls the backend Container App directly — **Block/Unblock has no operational effect on this app** unless you adopt the proxy routing pattern described in the [Production Enhancement](#production-enhancement-enable-foundry-proxy-for-operational-control) section below.
+
 #### Architecture
 
-The Prior Auth system uses a fan-out/fan-in orchestration pattern. The **Orchestrator** is the production entry point, and each sub-agent also has a dedicated endpoint for evaluation, red-teaming, and optional individual Foundry registration.
+The Prior Auth system uses a fan-out/fan-in orchestration pattern. The **Orchestrator** is the production entry point, and each sub-agent also has a dedicated endpoint for evaluation, red-teaming, and Foundry registration.
 
 ```
-Client → Foundry AI Gateway (proxy) → Backend /api/review/stream → Orchestrator
-                                                                      ├── Clinical Agent  (in-process)
-                                                                      ├── Compliance Agent (in-process)
-                                                                      ├── Coverage Agent   (in-process)
-                                                                      └── Synthesis Agent  (in-process)
+Default traffic flow (Foundry registration does NOT change this):
 
-Per-agent endpoints (eval / red-team / optional Foundry registration):
+  Frontend → Backend Container App /api/review/stream → Orchestrator
+                                                          ├── Clinical Agent  (in-process)
+                                                          ├── Compliance Agent (in-process)
+                                                          ├── Coverage Agent   (in-process)
+                                                          └── Synthesis Agent  (in-process)
+
+Foundry registration (observability side-channel only):
+
+  Foundry Portal ← traces/metrics ← Backend (via App Insights)
+
+Per-agent endpoints (eval / red-team / Foundry registration):
   POST /api/agents/clinical
   POST /api/agents/compliance
   POST /api/agents/coverage
@@ -409,8 +417,8 @@ Per-agent endpoints (eval / red-team / optional Foundry registration):
 
 | Strategy | When to use |
 |----------|-------------|
-| **Orchestrator only** (recommended) | Single kill switch for the entire pipeline. Blocking the Orchestrator blocks all sub-agents. Simplest to manage. |
-| **Orchestrator + individual agents** | Needed when you want per-agent evaluation, red-teaming, or independent governance (e.g., block only the Coverage Agent while the rest continue). |
+| **Orchestrator only** | Minimal setup. Registers a single entry in Foundry for fleet-level trace visibility. |
+| **Orchestrator + individual agents** | Full per-agent trace visibility in Foundry. Useful for per-agent evaluation, red-teaming, and organizational inventory. |
 
 #### Prerequisites
 
@@ -477,21 +485,17 @@ Repeat the Step 3 registration flow for each agent above. All agents share the s
 
 > **Tip:** See [API Reference — Per-Agent Endpoints](./api-reference.md#per-agent-endpoints) for request/response schemas and curl examples.
 
-#### Step 4: Update Client Configuration
+#### Step 4: Verify (No Client Changes Needed)
 
-After registration, Foundry generates a **new proxy URL** (e.g., `https://apim-<resource>.azure-api.net/prior-auth-orchestrator/`). This is the URL clients should use so Foundry can monitor and control traffic.
+After registration, Foundry generates a **proxy URL** for each registered agent (e.g., `https://apim-<resource>.azure-api.net/prior-auth-orchestrator/`). However, **no changes are needed** for this application:
 
-For this solution, the frontend communicates directly with the backend Container App. To route through Foundry's proxy:
+- The **frontend** continues to call the backend Container App directly
+- The **orchestrator** calls sub-agents in-process (no network calls)
+- The Foundry proxy URL is **not used** by any component in this app
 
-1. Copy the new agent URL from the Foundry portal (select the agent → **Agent URL** → Copy)
-2. Update the frontend's `BACKEND_URL` environment variable:
+The proxy URL is only relevant if external third-party consumers need governed access to your agents through the Foundry AI Gateway.
 
-```bash
-azd env set BACKEND_URL <foundry-proxy-url>
-azd up
-```
-
-> **Note:** The original backend URL continues to work. Using the Foundry proxy URL is optional but required for Foundry to track request metrics and enable block/unblock functionality.
+> **Note:** If you want Block/Unblock to have operational effect on this app, see the [Production Enhancement](#production-enhancement-enable-foundry-proxy-for-operational-control) section below.
 
 #### Step 5: Verify Registration
 
@@ -506,11 +510,44 @@ Once registered, you can manage the agent from the Foundry portal:
 
 | Action | How | Effect |
 |--------|-----|--------|
-| **Block** | Assets → Select agent → Update status → Block | Prevents new PA requests via the Foundry proxy URL. The backend Container App continues running but Foundry rejects incoming requests. Existing in-progress reviews are not terminated. |
-| **Unblock** | Assets → Select agent → Update status → Unblock | Re-enables requests through the Foundry proxy URL. |
+| **Block** | Assets → Select agent → Update status → Block | Blocks requests routed through the Foundry proxy URL only. **Has no effect on this app** in the default deployment because the frontend calls the backend directly. |
+| **Unblock** | Assets → Select agent → Update status → Unblock | Re-enables requests through the Foundry proxy URL. Same caveat: no effect unless traffic is routed through the proxy. |
 | **View traces** | Assets → Select agent → Traces tab | Shows each HTTP call to the agent with trace details including sub-agent spans. |
 
-> **Note:** Start/Stop is not available for custom agents. To stop the underlying infrastructure, scale down the Container App via Azure Portal or CLI: `az containerapp update --name <app> --resource-group <rg> --min-replicas 0 --max-replicas 0`
+> **Important:** Block/Unblock controls the Foundry AI Gateway proxy — not your backend Container App. Since this app calls the backend directly, blocking an agent in Foundry does not prevent the app from processing PA requests. To stop the underlying infrastructure entirely, scale down the Container App: `az containerapp update --name <app> --resource-group <rg> --min-replicas 0 --max-replicas 0`
+
+#### Production Enhancement: Enable Foundry Proxy for Operational Control
+
+In the default deployment, Block/Unblock has no effect because the frontend calls the backend directly. To make Foundry's Block/Unblock a real operational control for the entire pipeline, route frontend traffic through the Foundry AI Gateway proxy:
+
+**Step 1: Update frontend to use the Foundry proxy URL**
+
+```bash
+# Copy the proxy URL from Foundry portal → Assets → Select agent → Agent URL → Copy
+azd env set BACKEND_URL https://apim-<foundry-resource>.azure-api.net/prior-auth-orchestrator/
+azd up
+```
+
+**Step 2: Lock down direct backend access (recommended)**
+
+Set the backend Container App ingress to internal-only so the **only** public path is through the Foundry proxy. In `infra/modules/container-app.bicep`, update the backend's ingress:
+
+```bicep
+ingress: {
+  external: false   // was: true — now only reachable via Foundry proxy
+  targetPort: targetPort
+  transport: 'auto'
+  allowInsecure: false
+}
+```
+
+Redeploy with `azd up`. Now blocking the agent in Foundry effectively stops all incoming PA requests.
+
+**Per-agent Block/Unblock**
+
+To block/unblock individual agents independently, you would need to split each agent into its own container and have the orchestrator call agents via their Foundry proxy URLs instead of in-process. This is a larger architectural change (microservices pattern) and is beyond the scope of this solution accelerator.
+
+---
 
 #### Observability Progression
 
@@ -958,14 +995,6 @@ Now that your deployment is complete and tested, explore these resources to enha
 ## Need Help?
 
 - 🐛 **Issues:** Check [Troubleshooting Guide](./troubleshooting.md)
-- 💬 **Support:** Review [Support Guidelines](../SUPPORT.md)
+- 💬 **Support:** Review [Support Guidelines](../SUPPORT.md) or open an issue on [GitHub](https://github.com/amitmukh/prior-auth-maf/issues)
 - 🔧 **Contributing:** See [Contributing Guide](../CONTRIBUTING.md)
 - 📖 **Documentation:** See [Architecture](./architecture.md) for system design details
-
----
-
-## Need Help?
-
-- 🐛 **Issues:** Check [Troubleshooting Guide](./troubleshooting.md)
-- 💬 **Support:** Open an issue on [GitHub](https://github.com/amitmukh/prior-auth-maf/issues)
-- 📖 **Architecture:** See [Architecture Guide](./architecture.md) for system design details
