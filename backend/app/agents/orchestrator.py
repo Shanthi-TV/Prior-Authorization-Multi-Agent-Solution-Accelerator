@@ -1138,6 +1138,28 @@ async def _run_in_proactor_thread(agent_name: str, fn, *args) -> dict:
     return result
 
 
+async def run_synthesis_review(
+    request_data: dict,
+    compliance_result: dict,
+    clinical_result: dict,
+    coverage_result: dict,
+    cpt_validation: dict | None = None,
+) -> dict:
+    """Public wrapper for the Synthesis Decision Agent.
+
+    Exposed for standalone invocation via /api/agents/synthesis
+    and for evaluation/red-teaming. The orchestrator calls _run_synthesis
+    directly for in-pipeline use.
+    """
+    return await _run_synthesis(
+        request_data=request_data,
+        compliance_result=compliance_result,
+        clinical_result=clinical_result,
+        coverage_result=coverage_result,
+        cpt_validation=cpt_validation,
+    )
+
+
 async def _run_synthesis(
     request_data: dict,
     compliance_result: dict,

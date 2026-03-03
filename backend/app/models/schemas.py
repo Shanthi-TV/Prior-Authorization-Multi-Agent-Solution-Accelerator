@@ -238,3 +238,31 @@ class ReviewSummary(BaseModel):
     confidence_level: str
     reviewed_at: str
     decision_made: bool = False
+
+
+# --- Per-agent invocation request models ---
+# Used by /api/agents/* endpoints for standalone agent evaluation,
+# red-teaming, and Foundry Control Plane registration.
+
+
+class CoverageAgentRequest(BaseModel):
+    """Request body for POST /api/agents/coverage.
+
+    Includes the PA request plus clinical findings from a prior
+    Clinical Agent run (or test fixtures).
+    """
+    request: PriorAuthRequest
+    clinical_findings: dict = {}
+
+
+class SynthesisAgentRequest(BaseModel):
+    """Request body for POST /api/agents/synthesis.
+
+    Includes the PA request plus all three upstream agent results
+    (or test fixtures for evaluation).
+    """
+    request: PriorAuthRequest
+    compliance_result: dict = {}
+    clinical_result: dict = {}
+    coverage_result: dict = {}
+    cpt_validation: dict | None = None

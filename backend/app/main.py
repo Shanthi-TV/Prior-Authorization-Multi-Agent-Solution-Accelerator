@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.observability import setup_observability
 from app.patches import apply as _apply_windows_cli_patch
-from app.routers import review, decision
+from app.routers import review, decision, agents
 
 # Configure logging for the app namespace
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -39,6 +39,7 @@ app.add_middleware(
 
 app.include_router(review.router, prefix="/api")
 app.include_router(decision.router, prefix="/api")
+app.include_router(agents.router, prefix="/api")
 
 
 @app.get("/health")
