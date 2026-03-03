@@ -354,6 +354,137 @@ If you configured Azure Application Insights:
 3. Use **Transaction Search** to find review traces
 4. Check **Live Metrics** during an active review to see real-time telemetry
 
+### 5.4 Register Agents in Foundry Control Plane (Optional)
+
+You can register the multi-agent system in **Microsoft Foundry Control Plane** for centralized agent lifecycle management, monitoring, and governance. This is an optional enhancement that adds operational visibility without requiring any code changes.
+
+#### What You Get
+
+| Feature | Without Registration | With Registration |
+|---------|---------------------|-------------------|
+| Agent traces in App Insights | ✅ | ✅ |
+| Container logs in Log Analytics | ✅ | ✅ |
+| Agent listed in Foundry portal | ❌ | ✅ |
+| Block/Unblock agent from Foundry | ❌ | ✅ |
+| Fleet monitoring dashboard (runs, error rates, cost) | ❌ | ✅ |
+| Centralized trace viewer in Foundry | ❌ | ✅ |
+
+#### Architecture
+
+The Prior Auth system uses a fan-out/fan-in orchestration pattern where the **Orchestrator** is the only externally-callable agent. Sub-agents (Clinical, Compliance, Coverage, Synthesis) are invoked internally and have no independent endpoints.
+
+```
+Client → Foundry AI Gateway (proxy) → Backend /review endpoint → Orchestrator
+                                                                    ├── Clinical Agent (internal)
+                                                                    ├── Compliance Agent (internal)
+                                                                    ├── Coverage Agent (internal)
+                                                                    └── Synthesis Agent (internal)
+```
+
+**Why register only the Orchestrator:** Since all sub-agents are invoked internally by the Orchestrator, registering it as a single custom agent gives you a centralized kill switch for the entire multi-agent pipeline. Blocking the Orchestrator in Foundry effectively blocks all sub-agents — which is the correct behavior because the sub-agents have no independent use outside the orchestrated workflow. Sub-agent activity is visible as child spans in the Orchestrator's trace detail view.
+
+#### Prerequisites
+
+- Deployment completed (Steps 4.1–4.4)
+- Access to the [Foundry (new) portal](https://ai.azure.com/) — look for the `(new)` toggle in the portal banner
+
+#### Step 1: Enable AI Gateway
+
+The AI Gateway is a free, Foundry-managed feature (backed by Azure API Management) that enables agent registration, traffic proxying, and governance.
+
+1. Go to [ai.azure.com](https://ai.azure.com/) and ensure the **Foundry (new)** toggle is on
+2. On the toolbar, select **Operate**
+3. On the left pane, select **Admin**
+4. Open the **AI Gateway** tab
+5. Check if your Foundry resource has an associated AI gateway
+6. If not listed, click **Add AI Gateway** and follow the prompts
+
+> **Note:** An AI gateway is free to set up and unlocks governance features like security, diagnostic data, and rate limits.
+
+📖 **Detailed Instructions:** See [Create an AI gateway](https://learn.microsoft.com/en-us/azure/foundry/configuration/enable-ai-api-management-gateway-portal#create-an-ai-gateway).
+
+#### Step 2: Verify Application Insights Connection
+
+Foundry Control Plane uses the Application Insights resource associated with your project for tracing and diagnostics.
+
+1. In the Foundry portal, select **Operate** → **Admin**
+2. Under **All projects**, search for your project
+3. Select the project → **Connected resources** tab
+4. Verify that an **AppInsights** resource is listed
+5. If missing, click **Add connection** → **Application Insights** and select the one created by `azd up`
+
+#### Step 3: Register the Orchestrator Agent
+
+1. In the Foundry portal, select **Operate** → **Overview**
+2. Click **Register agent**
+3. Fill in the agent details:
+
+| Field | Value |
+|-------|-------|
+| **Agent URL** | `https://<your-backend-fqdn>/review` (the backend Container App URL) |
+| **Protocol** | HTTP |
+| **OpenTelemetry Agent ID** | `prior-auth-orchestrator` |
+| **Admin portal URL** | *(optional)* Your Azure Portal resource group URL |
+| **Project** | Select the auto-provisioned AI Foundry project |
+| **Agent name** | `Prior Auth Orchestrator` |
+| **Description** | Multi-agent prior authorization review system. Orchestrates Clinical Reviewer, Compliance Validation, Coverage Assessment, and Synthesis agents in a fan-out/fan-in pattern to produce structured PA recommendations for human reviewers. |
+
+4. Save the registration
+
+> **Finding your backend URL:** Run `azd show` and look for the `backendUrl` output, or check the Azure Portal under your resource group → Backend Container App → **Application Url**.
+
+#### Step 4: Update Client Configuration
+
+After registration, Foundry generates a **new proxy URL** (e.g., `https://apim-<resource>.azure-api.net/prior-auth-orchestrator/`). This is the URL clients should use so Foundry can monitor and control traffic.
+
+For this solution, the frontend communicates directly with the backend Container App. To route through Foundry's proxy:
+
+1. Copy the new agent URL from the Foundry portal (select the agent → **Agent URL** → Copy)
+2. Update the frontend's `BACKEND_URL` environment variable:
+
+```bash
+azd env set BACKEND_URL <foundry-proxy-url>
+azd up
+```
+
+> **Note:** The original backend URL continues to work. Using the Foundry proxy URL is optional but required for Foundry to track request metrics and enable block/unblock functionality.
+
+#### Step 5: Verify Registration
+
+1. In the Foundry portal, select **Operate** → **Assets**
+2. Use the **Source** filter → select **Custom** to see your registered agent
+3. Verify the status shows **Running**
+4. Submit a test PA request and check the **Traces** tab to confirm traces are flowing
+
+#### Lifecycle Management
+
+Once registered, you can manage the agent from the Foundry portal:
+
+| Action | How | Effect |
+|--------|-----|--------|
+| **Block** | Assets → Select agent → Update status → Block | Prevents new PA requests via the Foundry proxy URL. The backend Container App continues running but Foundry rejects incoming requests. Existing in-progress reviews are not terminated. |
+| **Unblock** | Assets → Select agent → Update status → Unblock | Re-enables requests through the Foundry proxy URL. |
+| **View traces** | Assets → Select agent → Traces tab | Shows each HTTP call to the agent with trace details including sub-agent spans. |
+
+> **Note:** Start/Stop is not available for custom agents. To stop the underlying infrastructure, scale down the Container App via Azure Portal or CLI: `az containerapp update --name <app> --resource-group <rg> --min-replicas 0 --max-replicas 0`
+
+#### Observability Progression
+
+The level of trace detail visible in Foundry depends on upstream framework releases:
+
+| What | When | Trace Detail |
+|------|------|-------------|
+| **HTTP-level traces** | Available now | Request/response to `/review` endpoint (duration, status code) |
+| **Agent-level traces** | After [MAF PR #4326](https://github.com/microsoft/agent-framework/pull/4326) merges | `invoke_agent` spans with agent name, duration, response capture, exception tracking |
+| **Tool-level traces** | After [Claude SDK #611](https://github.com/anthropics/claude-agent-sdk-python/issues/611) is resolved | Individual MCP tool call spans (e.g., `npi_lookup`, `validate_code`) as child spans |
+
+To pick up new trace capabilities, update `agent-framework-claude` version in `backend/requirements.txt` and redeploy with `azd up`. No other code changes are needed — the existing `enable_instrumentation()` call in the observability module automatically captures all emitted spans.
+
+📖 **Learn More:**
+- [Register a custom agent in Foundry Control Plane](https://learn.microsoft.com/en-us/azure/foundry/control-plane/register-custom-agent)
+- [Manage agents in Foundry Control Plane](https://learn.microsoft.com/en-us/azure/foundry/control-plane/how-to-manage-agents)
+- [Monitor agent health across your fleet](https://learn.microsoft.com/en-us/azure/foundry/control-plane/monitoring-across-fleet)
+
 ---
 
 ## Step 6: Clean Up (Optional)
