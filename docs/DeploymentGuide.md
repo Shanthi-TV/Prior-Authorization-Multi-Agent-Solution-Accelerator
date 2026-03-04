@@ -94,12 +94,7 @@ Select one of the following options to set up your deployment environment:
    az login --use-device-code
    ```
    > **Note:** Codespaces runs on GitHub-hosted VMs. If your organization enforces Conditional Access policies (e.g., IP/location restrictions), your corporate Azure account may be blocked. In that case, use a personal or non-corp Azure account for deployment.
-5. Proceed to [Step 3: Configure Deployment Settings](#step-3-configure-deployment-settings)
-
-</details>
-
-<details>
-<summary><b>Option B: VS Code Dev Containers</b></summary>
+5. Proceed to [Step 4: Deploy the Solution](#step-4-deploy-the-solution) (skip Step 3 — credentials are configured after `azd up` provisions the Foundry resources)
 
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/amitmukh/prior-auth-maf)
 
@@ -111,7 +106,7 @@ Select one of the following options to set up your deployment environment:
 1. Start Docker Desktop
 2. Click the badge above to open in Dev Containers
 3. Wait for the container to build and start (includes all deployment tools)
-4. Proceed to [Step 3: Configure Deployment Settings](#step-3-configure-deployment-settings)
+4. Proceed to [Step 4: Deploy the Solution](#step-4-deploy-the-solution) (skip Step 3 — credentials are configured after `azd up` provisions the Foundry resources)
 
 </details>
 
@@ -131,7 +126,7 @@ Select one of the following options to set up your deployment environment:
    ```
    > **Note:** In VS Code Web environment, the regular `az login` command may fail. Use the `--use-device-code` flag to authenticate via device code flow. Follow the prompts in the terminal to complete authentication.
 
-7. Proceed to [Step 3: Configure Deployment Settings](#step-3-configure-deployment-settings)
+7. Proceed to [Step 4: Deploy the Solution](#step-4-deploy-the-solution) (skip Step 3 — credentials are configured after `azd up` provisions the Foundry resources)
 
 </details>
 
@@ -175,6 +170,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Review the configuration options below. You can customize any settings that meet your needs, or leave them as defaults to proceed with a standard deployment.
 
 ### 3.1 Set Environment Variables
+
+> **Note:** This step is only required for **local development** or **Docker Compose** deployments. If you are deploying with `azd up`, skip this step — credentials are configured via `azd env set` in [Step 4.3](#43-deploy-claude-model--configure-credentials) after the Foundry resources are provisioned.
 
 Create a `backend/.env` file with your Microsoft Foundry credentials:
 
