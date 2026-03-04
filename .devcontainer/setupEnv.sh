@@ -17,7 +17,8 @@ fi
 
 echo "Setting up Backend..."
 cd ./backend
-pip install -r requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt || echo "⚠️ Backend dependency install had errors (non-fatal)"
 cd ../
 
 echo "Setting up Frontend..."
