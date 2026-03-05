@@ -120,6 +120,9 @@ module backend './modules/container-app.bicep' = {
     imageName: 'backend'
     targetPort: 8000
     useAcrImage: imagesBuilt == 'true'
+    cpu: '2'
+    memory: '4Gi'
+    minReplicas: 1
     env: [
       { name: 'CLAUDE_CODE_USE_FOUNDRY', value: 'true' }
       { name: 'ANTHROPIC_FOUNDRY_API_KEY', secretRef: 'foundry-api-key' }
