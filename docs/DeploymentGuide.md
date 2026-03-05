@@ -295,13 +295,7 @@ After `azd up` completes, the Microsoft Foundry Resource and Project are provisi
 
 **Step 1: Open the Microsoft Foundry Portal**
 
-The portal URL is displayed in the deployment output, or navigate directly:
-
-```bash
-azd show
-```
-
-Look for the `AI_FOUNDRY_PORTAL_URL` output and open it in your browser, or go to [ai.azure.com](https://ai.azure.com/) and select the provisioned project.
+Go to [ai.azure.com](https://ai.azure.com/) and select the provisioned project (named **"Prior Auth Project"** or `proj-aif-*`). Make sure the **Foundry (new)** toggle is on.
 
 **Step 2: Deploy the Claude Model**
 
@@ -339,13 +333,14 @@ azd up
 
 ### 4.4 Get Application URL
 
-After successful deployment:
+After successful deployment, the frontend and backend URLs are displayed in the deployment output under **Application URLs**. You can also retrieve them with:
 
 ```bash
-azd show
+azd env get-value frontendUrl
+azd env get-value backendUrl
 ```
 
-The frontend URL will be displayed in the deployment output. You can also find it in the [Azure Portal](https://portal.azure.com/) under your resource group → Frontend Container App → **Application Url**.
+Or find them in the [Azure Portal](https://portal.azure.com/) under your resource group → Frontend/Backend Container App → **Application Url**.
 
 ⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
 
@@ -357,8 +352,8 @@ The frontend URL will be displayed in the deployment output. You can also find i
 
 | **Check** | **How** | **Expected Result** |
 |-----------|---------|---------------------|
-| Frontend loads | Open the frontend URL from `azd show` output (look for `frontendUrl`) | PA request form displays |
-| Backend health | Open `https://<backend-url>/health` (look for `backendUrl` in `azd show` output) | `{"status": "healthy"}` |
+| Frontend loads | Open the frontend URL from the deployment output (or run `azd env get-value frontendUrl`) | PA request form displays |
+| Backend health | Open `https://<backend-url>/health` (run `azd env get-value backendUrl` to get the URL) | `{"status": "healthy"}` |
 | MCP connectivity | Submit a sample case via the frontend | Agent progress events stream |
 
 ### 5.2 Test the Application
@@ -480,7 +475,7 @@ Foundry Control Plane uses the Application Insights resource associated with you
 
 4. Save the registration
 
-> **Finding your backend URL:** Run `azd show` and look for the `backendUrl` output, or check the Azure Portal under your resource group → Backend Container App → **Application Url**.
+> **Finding your backend URL:** Run `azd env get-value backendUrl`, or check the Azure Portal under your resource group → Backend Container App → **Application Url**.
 
 #### Step 3b: Register Individual Agents (Optional)
 
