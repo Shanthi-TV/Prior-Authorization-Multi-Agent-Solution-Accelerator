@@ -86,6 +86,59 @@ configured to reach it.
 
 ---
 
+## Hosted-agent mode fails immediately
+
+The review fails as soon as a specialist phase starts after enabling
+`USE_HOSTED_AGENTS=true`.
+
+**Cause:** One or more hosted endpoint URLs are missing.
+
+**Fix:** Verify all required variables are set:
+
+- `HOSTED_AGENT_COMPLIANCE_URL`
+- `HOSTED_AGENT_CLINICAL_URL`
+- `HOSTED_AGENT_COVERAGE_URL`
+- `HOSTED_AGENT_SYNTHESIS_URL`
+
+If you are not ready to use hosted endpoints yet, set `USE_HOSTED_AGENTS=false`.
+
+---
+
+## Hosted-agent authentication returns 401 or 403
+
+The backend reaches the hosted endpoint but receives an authorization failure.
+
+**Cause:** The outbound auth header configuration does not match the hosted
+agent deployment.
+
+**Fix:** Check these settings:
+
+- `HOSTED_AGENT_AUTH_HEADER` (default `Authorization`)
+- `HOSTED_AGENT_AUTH_SCHEME` (default `Bearer`)
+- `HOSTED_AGENT_AUTH_TOKEN`
+
+If your hosted runtime expects a custom header, set the exact header name and
+token format required by that deployment.
+
+---
+
+## Hosted agent returns an unexpected payload shape
+
+The backend reaches the hosted agent, but parsing or downstream validation
+fails.
+
+**Expected payloads:**
+
+- `{ "result": { ... } }`
+- `{ "output": { ... } }`
+- `{ "data": { ... } }`
+- a flat JSON object containing the final result fields
+
+**Fix:** Update the hosted agent to return one of the supported envelopes, or
+confirm the payload keys match the corresponding local agent schema.
+
+---
+
 ## Port Stuck After Killing Server (Windows)
 
 After killing a server process, the port remains in LISTENING state.

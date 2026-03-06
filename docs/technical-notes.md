@@ -214,10 +214,56 @@ APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=<key>;IngestionEndpoin
 
 ---
 
-## Foundry Agent Registration
+## Hosted Agent Dispatch
 
-Register agents as **custom external agents** in Foundry Control Plane for
-centralized observability and governance.
+When `USE_HOSTED_AGENTS=true`, the backend keeps the same orchestration flow but
+replaces in-process specialist execution with outbound HTTP calls to hosted
+agent endpoints.
+
+### Supported endpoint settings
+
+| Agent | Environment variable |
+|-------|----------------------|
+| Compliance | `HOSTED_AGENT_COMPLIANCE_URL` |
+| Clinical | `HOSTED_AGENT_CLINICAL_URL` |
+| Coverage | `HOSTED_AGENT_COVERAGE_URL` |
+| Synthesis | `HOSTED_AGENT_SYNTHESIS_URL` |
+
+Shared request behavior is controlled with:
+
+- `HOSTED_AGENT_TIMEOUT_SECONDS`
+- `HOSTED_AGENT_AUTH_HEADER`
+- `HOSTED_AGENT_AUTH_SCHEME`
+- `HOSTED_AGENT_AUTH_TOKEN`
+
+### Response normalization
+
+Hosted responses are normalized so the orchestrator can keep the same contract
+used by the frontend and decision APIs. The backend accepts any of these common
+payload envelopes:
+
+- `{ "result": { ... } }`
+- `{ "output": { ... } }`
+- `{ "data": { ... } }`
+- `{ ... }` (already-flat payload)
+
+This lets hosted agents evolve independently without forcing frontend or audit
+pipeline changes.
+
+### Operational boundary
+
+- **Backend-owned:** retries, phase status, SSE events, review persistence,
+  audit trail generation, PDF generation
+- **Hosted-agent-owned:** specialist reasoning runtime, hosted evaluation, and
+  per-agent lifecycle visibility inside Foundry
+
+---
+
+## Optional Foundry Registration
+
+If you keep the local/in-process mode or expose per-agent HTTP endpoints for
+evaluation, you can still register them as **custom external agents** in
+Foundry Control Plane for centralized observability and governance.
 
 ### Agent IDs
 

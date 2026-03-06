@@ -196,6 +196,19 @@ Update `_build_audit_trail()`, `_generate_audit_justification()`, and
 | `frontend/components/progress-tracker.tsx` | Render new agent status |
 | `services/audit_pdf.py` | Render new agent data in PDF (optional) |
 
+### Hosted-agent-ready extension guidance
+
+If you want the new role to participate in hosted-agent mode, update the
+backend compatibility layer as well:
+
+1. Add a new hosted endpoint setting in [backend/app/config.py](../backend/app/config.py)
+2. Extend the hosted dispatch service so the orchestrator can call the new role
+3. Keep the hosted response schema aligned with the local `run_*()` output
+4. Preserve the same phase/event naming so the frontend does not need a second runtime-specific path
+
+The safest pattern is to treat the orchestrator contract as the source of truth
+and make both local and hosted implementations conform to it.
+
 ---
 
 ## Add a New MCP Server
@@ -305,6 +318,10 @@ mcp_tool = MCPStreamableHTTPTool(name="npi", url=NPI_URL, http_client=http_clien
 async with mcp_tool:
     result = await mcp_tool.session.call_tool("npi_validate", {"npi": "1234567893"})
 ```
+
+In hosted-agent mode, this MCP wiring typically moves into the hosted agent
+runtime itself; the backend only orchestrates HTTP calls and normalizes the
+returned payloads.
 
 ---
 

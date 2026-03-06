@@ -32,6 +32,31 @@ param azureFoundryEndpoint string = ''
 @description('Claude model name (e.g., claude-sonnet-4-6, claude-opus-4-5)')
 param claudeModel string = 'claude-sonnet-4-6'
 
+@description('Enable backend invocation of externally hosted agents')
+param useHostedAgents string = 'false'
+
+@description('Hosted Compliance Agent URL')
+param hostedAgentComplianceUrl string = ''
+
+@description('Hosted Clinical Agent URL')
+param hostedAgentClinicalUrl string = ''
+
+@description('Hosted Coverage Agent URL')
+param hostedAgentCoverageUrl string = ''
+
+@description('Hosted Synthesis Agent URL')
+param hostedAgentSynthesisUrl string = ''
+
+@description('Header name used when authenticating backend calls to hosted agents')
+param hostedAgentAuthHeader string = 'Authorization'
+
+@description('Auth scheme used when authenticating backend calls to hosted agents')
+param hostedAgentAuthScheme string = 'Bearer'
+
+@description('Optional auth token used when authenticating backend calls to hosted agents')
+@secure()
+param hostedAgentAuthToken string = ''
+
 @description('Whether container images have been built to ACR (set automatically by postprovision hook)')
 param imagesBuilt string = ''
 
@@ -125,11 +150,20 @@ module backend './modules/container-app.bicep' = {
       { name: 'ANTHROPIC_FOUNDRY_API_KEY', secretRef: 'foundry-api-key' }
       { name: 'ANTHROPIC_FOUNDRY_BASE_URL', value: azureFoundryEndpoint }
       { name: 'CLAUDE_MODEL', value: claudeModel }
+      { name: 'USE_HOSTED_AGENTS', value: useHostedAgents }
+      { name: 'HOSTED_AGENT_COMPLIANCE_URL', value: hostedAgentComplianceUrl }
+      { name: 'HOSTED_AGENT_CLINICAL_URL', value: hostedAgentClinicalUrl }
+      { name: 'HOSTED_AGENT_COVERAGE_URL', value: hostedAgentCoverageUrl }
+      { name: 'HOSTED_AGENT_SYNTHESIS_URL', value: hostedAgentSynthesisUrl }
+      { name: 'HOSTED_AGENT_AUTH_HEADER', value: hostedAgentAuthHeader }
+      { name: 'HOSTED_AGENT_AUTH_SCHEME', value: hostedAgentAuthScheme }
+      { name: 'HOSTED_AGENT_AUTH_TOKEN', secretRef: 'hosted-agent-auth-token' }
       { name: 'APPLICATION_INSIGHTS_CONNECTION_STRING', value: monitoring.outputs.appInsightsConnectionString }
       { name: 'FRONTEND_ORIGIN', value: 'https://${abbrs.appContainerApps}frontend-${resourceToken}.${containerAppsEnv.outputs.defaultDomain}' }
     ]
     secrets: [
       { name: 'foundry-api-key', value: azureFoundryApiKey != '' ? azureFoundryApiKey : 'placeholder-configure-after-model-deployment' }
+      { name: 'hosted-agent-auth-token', value: hostedAgentAuthToken }
     ]
     healthCheckPath: '/health'
   }

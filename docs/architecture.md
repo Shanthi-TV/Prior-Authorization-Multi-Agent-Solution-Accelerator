@@ -2,94 +2,47 @@
 
 ## Multi-Agent Architecture
 
+The application now supports a **hosted-agent-ready** runtime model.
+
+- **Frontend + backend/orchestrator stay in Azure Container Apps**
+- **Specialist reasoning can run either locally or through hosted Microsoft Foundry agent endpoints**
+- **The backend keeps ownership of SSE progress, review persistence, decision handling, and PDF generation**
+
+Runtime selection is controlled by `USE_HOSTED_AGENTS`:
+
+- `false` — current local/in-process `ClaudeAgent` execution
+- `true` — backend invokes externally hosted agent endpoints over HTTP
+
 ```
-┌──────────────────────────────────────────────────────────────┐
-│               Next.js Frontend (shadcn/ui)                   │
-│  UploadForm → POST /api/review/stream → ProgressTracker      │
-│  [Load Sample Case]    (SSE)             ├── Phase timeline  │
-│                                          ├── Agent cards     │
-│                                          └── Elapsed timer   │
-│                                                              │
-│  ReviewDashboard (after review completes)                    │
-│  ├── Summary + Confidence                                    │
-│  ├── Documentation Gaps                                      │
-│  ├── Audit Trail                                             │
-│  ├── Agent Details (tabbed)                                  │
-│  ├── DecisionPanel                                           │
-│  │    ├── Accept / Override                                  │
-│  │    ├── POST /api/decision                                 │
-│  │    └── Letter Preview + PDF Download (.pdf)               │
-│  └── Audit Justification Download (.pdf)                      │
-└──────────────────────┬───────────────────────────────────────┘
-                       │  REST (JSON) + SSE (text/event-stream)
-┌──────────────────────▼───────────────────────────────────────┐
-│                   FastAPI Backend                             │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Orchestrator (orchestrator.py)             │  │
-│  │                                                        │  │
-│  │  Pre-flight ─ CPT/HCPCS FORMAT VALIDATION              │  │
-│  │  (cpt_validation.py — regex + curated lookup table)    │  │
-│  │                                                        │  │
-│  │  Phase 1 ─ PARALLEL (asyncio.gather)                   │  │
-│  │  ┌─────────────────────┐  ┌──────────────────────────┐ │  │
-│  │  │  Compliance Agent   │  │  Clinical Reviewer Agent │ │  │
-│  │  │  (no tools)         │  │  MCP: icd10-codes,       │ │  │
-│  │  │                     │  │       pubmed,            │ │  │
-│  │  │  Validates docs,    │  │       clinical-trials    │ │  │
-│  │  │  checklists,        │  │                          │ │  │
-│  │  │  completeness       │  │  Validates ICD-10 codes, │ │  │
-│  │  │                     │  │  extracts clinical data, │ │  │
-│  │  │                     │  │  confidence scoring,     │ │  │
-│  │  │                     │  │  clinical trials search  │ │  │
-│  │  └─────────────────────┘  └────────────┬─────────────┘ │  │
-│  │                                        │               │  │
-│  │  Phase 2 ─ SEQUENTIAL (needs clinical findings)        │  │
-│  │  ┌─────────────────────────────────────┐               │  │
-│  │  │  Coverage Agent                     │               │  │
-│  │  │  MCP: npi-registry, cms-coverage    │               │  │
-│  │  │                                     │               │  │
-│  │  │  Verifies provider, searches        │               │  │
-│  │  │  coverage policies, maps evidence   │               │  │
-│  │  │  to criteria (MET/NOT_MET/          │               │  │
-│  │  │  INSUFFICIENT + confidence),        │               │  │
-│  │  │  Diagnosis-Policy Alignment check   │               │  │
-│  │  └─────────────────────────────────────┘               │  │
-│  │                                                        │  │
-│  │  Phase 3 ─ SYNTHESIS (gate-based decision rubric)      │  │
-│  │  Gate 1: Provider → Gate 2: Codes → Gate 3: Necessity  │  │
-│  │  → APPROVE or PEND + confidence level + rationale      │  │
-│  │                                                        │  │
-│  │  Phase 4 ─ AUDIT TRAIL & JUSTIFICATION                 │  │
-│  │  Computes confidence, builds audit trail, generates     │  │
-│  │  audit justification document (Markdown + PDF)          │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │  Decision & Notification (decision.py + notification.py)│  │
-│  │  POST /api/decision — Accept or Override recommendation │  │
-│  │  Generates auth number (PA-YYYYMMDD-XXXXX)              │  │
-│  │  Produces approval/pend notification letters (text + PDF)  │  │
-│  │  Override rationale flows to letters + audit PDF         │  │
-│  │  In-memory review store for persistence                 │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                              │
-│  Microsoft Foundry (Claude model endpoint + API key)         │
-└──────────────────────┬───────────────────────────────────────┘
-                       │  Streamable HTTP (MCP protocol)
-                       │  Header: User-Agent: claude-code/1.0
-┌──────────────────────▼───────────────────────────────────────┐
-│           Remote Healthcare MCP Servers                       │
-│     (from https://github.com/anthropics/healthcare)           │
-│                                                               │
-│  ┌────────────────┐  ┌──────────────────┐  ┌──────────────┐  │
-│  │ NPI Registry   │  │ ICD-10 Codes     │  │ CMS Coverage │  │
-│  │ (DeepSense)    │  │ (DeepSense)      │  │ (DeepSense)  │  │
-│  └────────────────┘  └──────────────────┘  └──────────────┘  │
-│  ┌──────────────────┐  ┌──────────────────┐                   │
-│  │ Clinical Trials  │  │ PubMed           │                   │
-│  │ (DeepSense)      │  │ (Anthropic)      │                   │
-│  └──────────────────┘  └──────────────────┘                   │
+┌────────────────────────────────────────────────────────────────────┐
+│ Next.js Frontend (ACA)                                            │
+│ UploadForm → POST /api/review/stream → ProgressTracker            │
+│ ReviewDashboard → DecisionPanel → PDF downloads                   │
+└──────────────────────────────┬─────────────────────────────────────┘
+                               │ REST + SSE
+┌──────────────────────────────▼─────────────────────────────────────┐
+│ FastAPI Backend + Orchestrator (ACA)                              │
+│ - Pre-flight validation                                           │
+│ - Phase orchestration and retries                                 │
+│ - SSE progress events                                             │
+│ - Review store + decision handling                                │
+│ - Audit/PDF generation                                            │
+└───────────────┬───────────────────────────────┬────────────────────┘
+                │                               │
+                │ hosted HTTP agent calls       │ OpenTelemetry
+                │ when USE_HOSTED_AGENTS=true   │
+┌───────────────▼───────────────────────────────────────────────┐
+│ Microsoft Foundry Agent Service                               │
+│ - Compliance Agent                                            │
+│ - Clinical Agent                                              │
+│ - Coverage Agent                                              │
+│ - Synthesis Agent                                             │
+│ - Native evaluation / lifecycle / control-plane visibility    │
+└───────────────┬───────────────────────────────────────────────┘
+                │ MCP tools / model runtime
+┌───────────────▼───────────────────────────────────────────────┐
+│ MCP servers + Claude model endpoint                           │
+│ NPI Registry • ICD-10 • CMS Coverage • Clinical Trials • PubMed │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -105,8 +58,10 @@
 2. The frontend POSTs to `POST /api/review/stream` on the FastAPI backend,
    opening an SSE (Server-Sent Events) connection for real-time progress.
 
-3. The **Orchestrator** runs a pre-flight check and then launches three
-   specialized Claude agents:
+3. The **Orchestrator** runs a pre-flight check and then dispatches the
+    specialist stages. In local mode it executes in-process `ClaudeAgent`
+    instances; in hosted mode it invokes the configured Foundry agent HTTP
+    endpoints while preserving the same downstream response contract.
 
    **Pre-flight — CPT/HCPCS Format Validation** (`cpt_validation.py`):
    - Validates procedure code format (5-digit CPT or letter+4 HCPCS)
@@ -114,12 +69,12 @@
    - Invalid format codes are flagged before any agent runs
    - Results are injected into the synthesis prompt for Gate 2 evaluation
 
-   **Phase 1 — Parallel execution** (`asyncio.gather`):
-   - **Compliance Agent** (no tools, `max_turns=5`) — validates documentation completeness
-   - **Clinical Reviewer Agent** (ICD-10 + PubMed + Clinical Trials MCP, `max_turns=15`) — validates diagnosis codes, extracts clinical data with confidence scoring, searches literature
+    **Phase 1 — Parallel execution** (`asyncio.gather`):
+    - **Compliance Agent** — validates documentation completeness
+    - **Clinical Reviewer Agent** — validates diagnosis codes, extracts clinical data with confidence scoring, and searches literature/trials
 
-   **Phase 2 — Sequential** (depends on clinical findings):
-   - **Coverage Agent** (NPI + CMS MCP, `max_turns=15`) — verifies provider, searches coverage policies, maps evidence to criteria
+    **Phase 2 — Sequential** (depends on clinical findings):
+    - **Coverage Agent** — verifies provider, searches coverage policies, maps evidence to criteria
 
    **Phase 3 — Synthesis** (gate-based decision rubric):
    - Gate 1 (Provider) → Gate 2 (Codes) → Gate 3 (Medical Necessity)
@@ -128,7 +83,7 @@
    **Phase 4 — Audit trail and justification**:
    - Computes overall confidence, builds audit trail, generates audit justification document (Markdown + PDF)
 
-4. Response persisted in review store for later retrieval.
+4. The normalized synthesis payload is persisted in the review store for later retrieval.
 
 5. Frontend displays real-time progress tracker with phase timeline and agent cards.
 

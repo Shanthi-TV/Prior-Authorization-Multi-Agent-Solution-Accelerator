@@ -219,7 +219,10 @@ contains a regenerated audit PDF with Section 9 ("Clinician Override Record").
 
 ## Per-Agent Endpoints
 
-These endpoints expose each agent individually for **Foundry Control Plane registration**, per-agent evaluation, red-teaming, and future microservices migration. The production orchestrator (`POST /api/review/stream`) continues to call agents in-process — these endpoints are for external callers only.
+These endpoints expose each agent individually for hosted-agent deployment,
+per-agent evaluation, red-teaming, and future microservices migration. When
+`USE_HOSTED_AGENTS=true`, the production orchestrator can call equivalent
+hosted endpoints over HTTP while preserving the same result contract.
 
 All per-agent responses share a common envelope:
 
@@ -231,6 +234,9 @@ All per-agent responses share a common envelope:
   "result": { ... }
 }
 ```
+
+The backend hosted-agent adapter also accepts `output` or `data` in place of
+`result` for compatibility with alternate hosted runtimes.
 
 ### `POST /api/agents/clinical`
 

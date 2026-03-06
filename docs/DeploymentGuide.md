@@ -2,7 +2,9 @@
 
 ## Overview
 
-This guide walks you through deploying the **Prior Authorization Review — Multi-Agent Solution Accelerator** to Azure. The deployment process takes approximately 10 minutes for the default configuration and includes both infrastructure provisioning and application setup.
+This guide walks you through deploying the **Prior Authorization Review — Multi-Agent Solution Accelerator** to Azure. The default deployment takes approximately 10 minutes and provisions the frontend, backend/orchestrator, and Microsoft Foundry project resources.
+
+> **Hosted-agent note:** The current `azd up` flow does **not** automatically provision the four hosted specialist agent runtimes. It prepares the app for them by deploying the backend compatibility/orchestrator layer and Foundry resources. You can run in local/in-process mode immediately, then switch to hosted endpoints after those agents are deployed separately.
 
 🆘 **Need Help?** If you encounter any issues during deployment, check our [Troubleshooting Guide](./troubleshooting.md) for solutions to common problems.
 
@@ -42,7 +44,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 | [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/) | Storing Docker images | [Pricing](https://azure.microsoft.com/en-us/pricing/details/container-registry/) |
 | [Azure Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview) | Observability and tracing (optional) | [Pricing](https://azure.microsoft.com/en-us/pricing/details/monitor/) |
 
-> **Note:** The Microsoft Foundry Resource and Project are automatically provisioned by `azd up`. You only need to deploy the Claude model manually after provisioning (see Step 4.3).
+> **Note:** The Microsoft Foundry Resource and Project are automatically provisioned by `azd up`. You only need to deploy the Claude model manually after provisioning (see Step 4.3). Hosted specialist agents, if used, are deployed separately and then wired in through environment variables.
 
 **Supported Regions:** Claude models on Microsoft Foundry are currently available only in **East US 2** and **Sweden Central**. You must deploy to one of these regions.
 
@@ -174,6 +176,21 @@ CLAUDE_MODEL=claude-sonnet-4-6
 # Skills-based approach (default: true)
 USE_SKILLS=true
 
+# Runtime mode
+# false = local/in-process ClaudeAgent execution
+# true  = backend invokes hosted specialist agents over HTTP
+USE_HOSTED_AGENTS=false
+
+# Hosted agent endpoints (set when USE_HOSTED_AGENTS=true)
+HOSTED_AGENT_COMPLIANCE_URL=
+HOSTED_AGENT_CLINICAL_URL=
+HOSTED_AGENT_COVERAGE_URL=
+HOSTED_AGENT_SYNTHESIS_URL=
+HOSTED_AGENT_TIMEOUT_SECONDS=120
+HOSTED_AGENT_AUTH_HEADER=Authorization
+HOSTED_AGENT_AUTH_SCHEME=Bearer
+HOSTED_AGENT_AUTH_TOKEN=
+
 # Azure Application Insights (optional)
 APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=...
 ```
@@ -192,6 +209,10 @@ APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=
 > Project API key  = "F8RHd..."                                                        →  AZURE_FOUNDRY_API_KEY
 > Deployment name  = "claude-sonnet-4-6"                                                →  CLAUDE_MODEL
 > ```
+
+If you are using hosted agents, keep the Claude credentials configured for any
+backend-owned model operations and add the hosted-agent URLs after those agent
+deployments are available.
 
 ### 3.2 Advanced Configuration (Optional)
 
@@ -350,6 +371,24 @@ az containerapp update --name $APP_NAME --resource-group $RG_NAME \
 azd up
 ```
 
+**Optional: switch the deployed backend to hosted-agent mode**
+
+After your hosted specialist agents are deployed, set their URLs in the azd
+environment and redeploy or update the Container App configuration:
+
+```bash
+azd env set USE_HOSTED_AGENTS true
+azd env set HOSTED_AGENT_COMPLIANCE_URL https://<host>/api/agents/compliance
+azd env set HOSTED_AGENT_CLINICAL_URL https://<host>/api/agents/clinical
+azd env set HOSTED_AGENT_COVERAGE_URL https://<host>/api/agents/coverage
+azd env set HOSTED_AGENT_SYNTHESIS_URL https://<host>/api/agents/synthesis
+azd env set HOSTED_AGENT_AUTH_TOKEN <token-if-required>
+```
+
+> **Important:** `USE_HOSTED_AGENTS=true` should only be enabled after all four
+> required hosted endpoints are reachable and return the expected result
+> envelopes.
+
 ### 4.4 Get Application URL
 
 After successful deployment, the frontend and backend URLs are displayed in the deployment output under **Application URLs**. You can also retrieve them with:
@@ -400,7 +439,7 @@ If you configured Azure Application Insights:
 
 ### 5.4 Register Agents in Foundry Control Plane (Optional)
 
-You can optionally register the multi-agent system in **Microsoft Foundry Control Plane** for centralized observability, fleet monitoring, and organizational inventory. Registration lets you view agent traces, runs, and error rates in the Foundry portal — it does **not** change the app's runtime behavior or traffic flow. The frontend continues to call the backend Container App directly regardless of whether agents are registered.
+You can optionally register the multi-agent system in **Microsoft Foundry Control Plane** for centralized observability, fleet monitoring, and organizational inventory. Registration lets you view agent traces, runs, and error rates in the Foundry portal — it does **not** by itself change the app's runtime behavior or traffic flow. The frontend continues to call the backend Container App directly regardless of whether agents are registered.
 
 #### What You Get
 
@@ -417,22 +456,22 @@ You can optionally register the multi-agent system in **Microsoft Foundry Contro
 
 #### Architecture
 
-The Prior Auth system uses a fan-out/fan-in orchestration pattern. The **Orchestrator** is the production entry point, and each sub-agent also has a dedicated endpoint for evaluation, red-teaming, and Foundry registration.
+The Prior Auth system uses a fan-out/fan-in orchestration pattern. The **Orchestrator** is the production entry point, and each sub-agent also has a dedicated endpoint for evaluation, red-teaming, hosted-agent deployment, and optional Foundry registration.
 
 ```
-Default traffic flow (Foundry registration does NOT change this):
+Default traffic flow (registration alone does NOT change this):
 
   Frontend → Backend Container App /api/review/stream → Orchestrator
-                                                          ├── Clinical Agent  (in-process)
-                                                          ├── Compliance Agent (in-process)
-                                                          ├── Coverage Agent   (in-process)
-                                                          └── Synthesis Agent  (in-process)
+                                                          ├── Clinical Agent  (local or hosted)
+                                                          ├── Compliance Agent (local or hosted)
+                                                          ├── Coverage Agent   (local or hosted)
+                                                          └── Synthesis Agent  (local or hosted)
 
 Foundry registration (observability side-channel only):
 
   Foundry Portal ← traces/metrics ← Backend (via App Insights)
 
-Per-agent endpoints (eval / red-team / Foundry registration):
+Per-agent endpoints (eval / hosted deployment contract / Foundry registration):
   POST /api/agents/clinical
   POST /api/agents/compliance
   POST /api/agents/coverage
@@ -518,8 +557,8 @@ Repeat the Step 3 registration flow for each agent above. All agents share the s
 After registration, Foundry generates a **proxy URL** for each registered agent (e.g., `https://apim-<resource>.azure-api.net/prior-auth-orchestrator/`). However, **no changes are needed** for this application:
 
 - The **frontend** continues to call the backend Container App directly
-- The **orchestrator** calls sub-agents in-process (no network calls)
-- The Foundry proxy URL is **not used** by any component in this app
+- The **orchestrator** continues to use its configured runtime mode (local or hosted)
+- The Foundry proxy URL is **not used** by any component in this app unless you explicitly reroute traffic through it
 
 The proxy URL is only relevant if external third-party consumers need governed access to your agents through the Foundry AI Gateway.
 

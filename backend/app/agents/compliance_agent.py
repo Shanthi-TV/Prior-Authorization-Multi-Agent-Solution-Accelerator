@@ -16,6 +16,7 @@ from agent_framework_claude import ClaudeAgent
 from app.agents._parse import parse_json_response, pydantic_to_output_format
 from app.config import settings
 from app.models.schemas import ComplianceResult
+from app.services.hosted_agents import invoke_hosted_agent
 
 _BACKEND_DIR = str(Path(__file__).resolve().parent.parent.parent)
 
@@ -150,6 +151,13 @@ async def run_compliance_review(request_data: dict) -> dict:
         Dict with checklist, overall_status, missing_items,
         additional_info_requests.
     """
+    if settings.USE_HOSTED_AGENTS:
+        return await invoke_hosted_agent(
+            "compliance-agent",
+            settings.HOSTED_AGENT_COMPLIANCE_URL,
+            request_data,
+        )
+
     agent = await create_compliance_agent()
 
     prompt = f"""Validate the documentation completeness of this prior authorization request.

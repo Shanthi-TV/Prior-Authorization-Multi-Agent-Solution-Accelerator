@@ -20,6 +20,7 @@ from agent_framework_claude import ClaudeAgent
 from app.agents._parse import parse_json_response, pydantic_to_output_format
 from app.config import settings
 from app.models.schemas import ClinicalResult
+from app.services.hosted_agents import invoke_hosted_agent
 from app.tools.mcp_config import CLINICAL_MCP_SERVERS
 
 _BACKEND_DIR = str(Path(__file__).resolve().parent.parent.parent)
@@ -237,6 +238,13 @@ async def run_clinical_review(request_data: dict) -> dict:
         extraction_confidence), literature_support, clinical_trials,
         clinical_summary, tool_results.
     """
+    if settings.USE_HOSTED_AGENTS:
+        return await invoke_hosted_agent(
+            "clinical-reviewer-agent",
+            settings.HOSTED_AGENT_CLINICAL_URL,
+            request_data,
+        )
+
     agent = await create_clinical_agent()
 
     prompt = f"""Review the clinical aspects of this prior authorization request.

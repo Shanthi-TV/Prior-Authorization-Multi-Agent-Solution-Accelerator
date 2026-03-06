@@ -10,6 +10,33 @@ class Settings:
     CLAUDE_MODEL: str = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
     FRONTEND_ORIGIN: str = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
 
+    # Agent runtime mode
+    # false = current local/in-process ClaudeAgent execution
+    # true  = backend invokes externally hosted agents over HTTP
+    USE_HOSTED_AGENTS: bool = os.getenv("USE_HOSTED_AGENTS", "false").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
+    # Hosted agent endpoints (used only when USE_HOSTED_AGENTS=true)
+    HOSTED_AGENT_CLINICAL_URL: str = os.getenv("HOSTED_AGENT_CLINICAL_URL", "")
+    HOSTED_AGENT_COMPLIANCE_URL: str = os.getenv("HOSTED_AGENT_COMPLIANCE_URL", "")
+    HOSTED_AGENT_COVERAGE_URL: str = os.getenv("HOSTED_AGENT_COVERAGE_URL", "")
+    HOSTED_AGENT_SYNTHESIS_URL: str = os.getenv("HOSTED_AGENT_SYNTHESIS_URL", "")
+    HOSTED_AGENT_TIMEOUT_SECONDS: float = float(
+        os.getenv("HOSTED_AGENT_TIMEOUT_SECONDS", "180")
+    )
+
+    # Optional auth/header configuration for hosted-agent calls
+    HOSTED_AGENT_AUTH_HEADER: str = os.getenv(
+        "HOSTED_AGENT_AUTH_HEADER", "Authorization"
+    )
+    HOSTED_AGENT_AUTH_SCHEME: str = os.getenv(
+        "HOSTED_AGENT_AUTH_SCHEME", "Bearer"
+    )
+    HOSTED_AGENT_AUTH_TOKEN: str = os.getenv("HOSTED_AGENT_AUTH_TOKEN", "")
+
     # Skills-based approach toggle (default: True)
     # When True, agents use SKILL.md files via MAF native skill discovery.
     # When False, agents use inline system prompt instructions.

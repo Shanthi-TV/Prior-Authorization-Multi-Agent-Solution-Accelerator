@@ -33,6 +33,7 @@ from app.agents.clinical_agent import run_clinical_review
 from app.agents.coverage_agent import run_coverage_review
 from app.config import settings
 from app.models.schemas import SynthesisOutput
+from app.services.hosted_agents import invoke_hosted_agent
 from app.services.audit_pdf import generate_audit_justification_pdf
 from app.services.cpt_validation import validate_procedure_codes
 
@@ -1176,6 +1177,19 @@ async def _run_synthesis(
     In skills mode, uses SKILL.md discovery from .claude/skills/synthesis-decision/.
     In prompt mode, uses inline SYNTHESIS_INSTRUCTIONS.
     """
+    if settings.USE_HOSTED_AGENTS:
+        return await invoke_hosted_agent(
+            "synthesis-decision-agent",
+            settings.HOSTED_AGENT_SYNTHESIS_URL,
+            {
+                "request": request_data,
+                "compliance_result": compliance_result,
+                "clinical_result": clinical_result,
+                "coverage_result": coverage_result,
+                "cpt_validation": cpt_validation,
+            },
+        )
+
     _output_format = pydantic_to_output_format(SynthesisOutput)
 
     if settings.USE_SKILLS:

@@ -21,6 +21,7 @@ from agent_framework_claude import ClaudeAgent
 from app.agents._parse import parse_json_response, pydantic_to_output_format
 from app.config import settings
 from app.models.schemas import CoverageResult
+from app.services.hosted_agents import invoke_hosted_agent
 from app.tools.mcp_config import COVERAGE_MCP_SERVERS
 
 _BACKEND_DIR = str(Path(__file__).resolve().parent.parent.parent)
@@ -255,6 +256,16 @@ async def run_coverage_review(request_data: dict, clinical_findings: dict) -> di
         coverage_criteria_met/not_met, policy_references,
         coverage_limitations, documentation_gaps, tool_results.
     """
+    if settings.USE_HOSTED_AGENTS:
+        return await invoke_hosted_agent(
+            "coverage-assessment-agent",
+            settings.HOSTED_AGENT_COVERAGE_URL,
+            {
+                "request": request_data,
+                "clinical_findings": clinical_findings,
+            },
+        )
+
     agent = await create_coverage_agent()
 
     # Truncate literature support to keep prompt size manageable

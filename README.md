@@ -1,11 +1,17 @@
 # Prior Authorization Review — Multi-Agent Solution Accelerator
 
 A **multi-agent** AI-assisted prior authorization (PA) review application built
-with the **Microsoft Agent Framework**, **Claude Agent SDK**, and **Anthropic
-& DeepSense Healthcare MCP Servers**. Four specialized agents — Compliance, Clinical
-Reviewer, Coverage, and Synthesis — work in parallel and sequence, coordinated by an
+with **Azure Container Apps**, **Microsoft Foundry**, the **Microsoft Agent
+Framework**, **Claude Agent SDK**, and **Anthropic & DeepSense Healthcare MCP
+Servers**. Four specialized agents — Compliance, Clinical Reviewer, Coverage,
+and Synthesis — work in parallel and sequence, coordinated by a FastAPI
 orchestrator that applies a gate-based decision rubric and produces a final
 recommendation with confidence scoring and an audit justification document.
+
+The solution now supports **two runtime modes**:
+
+- **Local / in-process mode** — the backend executes agents directly with `ClaudeAgent`
+- **Hosted-agent mode** — the backend preserves the same API/SSE contract while dispatching specialist stages to hosted Microsoft Foundry-compatible agent endpoints
 
 Incorporates best practices from the
 [Anthropic prior-auth-review-skill](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill):
@@ -46,18 +52,21 @@ This solution leverages **Microsoft Foundry**, **Microsoft Agent Framework**,
 **Claude Agent SDK**, **Azure Application Insights**, and **Anthropic &
 DeepSense Healthcare MCP Servers** to create an intelligent prior authorization review pipeline where
 specialized AI agents work together to validate, assess, and synthesize PA
-decisions with full audit transparency.
+decisions with full audit transparency. In the hosted-agent architecture, the
+frontend and FastAPI orchestrator remain in Azure Container Apps while the
+specialist reasoning stages move behind Microsoft Foundry hosted-agent
+endpoints.
 
 ### Solution architecture
 
-|![Solution Architecture](./docs/images/readme/solution-architecture.png)|
+|![Solution Architecture](./docs/images/readme/solution-architecture.svg)|
 |---|
 
 ### Agentic architecture
 
 The orchestrator coordinates four phases with four specialized agents:
 
-|![Agentic Architecture](./docs/images/readme/agentic-architecture.png)|
+|![Agentic Architecture](./docs/images/readme/agentic-architecture.svg)|
 |---|
 
 <br/>
@@ -85,6 +94,14 @@ The orchestrator coordinates four phases with four specialized agents:
   - Coverage Agent runs sequentially after clinical findings are available
   - Synthesis Agent executes the gate-based rubric to generate the final recommendation and confidence
   - Four-phase pipeline: Pre-flight → Parallel → Sequential → Synthesis → Audit
+</details>
+
+<details>
+  <summary><b>Hosted-agent ready architecture</b></summary>
+
+  - `USE_HOSTED_AGENTS=true` switches the backend from local in-process execution to HTTP invocation of hosted specialist agents
+  - Frontend routes, SSE progress events, decision handling, and PDF generation remain in the ACA-hosted backend
+  - Local execution remains available as a fallback during migration and parity testing
 </details>
 
 <details>
@@ -144,7 +161,7 @@ The orchestrator coordinates four phases with four specialized agents:
 
   - Azure Application Insights integration via OpenTelemetry
   - Custom phase spans with semantic attributes (recommendation, confidence, agent status)
-  - Foundry agent registration for centralized fleet management
+  - Microsoft Foundry hosted agents provide native runtime and evaluation visibility when hosted mode is enabled
   - Application Map, Transaction Search, Live Metrics, and Performance views
 </details>
 
@@ -246,11 +263,12 @@ By using the *Prior Authorization Review — Multi-Agent Solution Accelerator*, 
 | Document | Description |
 |----------|-------------|
 | [Deployment Guide](./docs/DeploymentGuide.md) | Step-by-step deployment instructions — Docker Compose, local development, Azure Container Apps, prerequisites, environment configuration, troubleshooting |
-| [Architecture](./docs/architecture.md) | Detailed multi-agent architecture, MCP integration, agent details, decision rubric, confidence scoring, audit justification, skills-based architecture |
+| [Architecture](./docs/architecture.md) | Detailed hosted-agent-ready architecture, runtime modes, MCP integration, agent details, decision rubric, confidence scoring, and audit justification |
 | [API Reference](./docs/api-reference.md) | Full REST API documentation — review, decision, per-agent endpoints, request/response schemas, SSE events, error codes |
+| [Foundry Hosted Agents Plan](./docs/foundry-hosted-agents-plan.md) | Saved migration plan for the lower-risk Foundry hosted-agent architecture (frontend ACA + backend/orchestrator ACA + 4 hosted agents) |
 | [Extending the Application](./docs/extending.md) | Step-by-step guides for adding new agents, MCP servers, changing the decision rubric, customizing notification letters |
-| [Technical Notes](./docs/technical-notes.md) | Windows SDK patches, MCP header injection, structured output, prompt caching, observability, Foundry agent registration, known limitations |
-| [Troubleshooting](./docs/troubleshooting.md) | Common issues and fixes — CLI failures, empty responses, connection errors, truncated responses, Foundry trace issues |
+| [Technical Notes](./docs/technical-notes.md) | Windows SDK patches, MCP header injection, hosted-agent dispatch, structured output, observability, and known limitations |
+| [Troubleshooting](./docs/troubleshooting.md) | Common issues and fixes — CLI failures, hosted-agent config/auth problems, connection errors, truncated responses, and Foundry trace issues |
 | [Production Migration](./docs/production-migration.md) | PostgreSQL schema, Azure Blob Storage layout, migration steps, environment variables, what not to change |
 
 ### Customization areas
