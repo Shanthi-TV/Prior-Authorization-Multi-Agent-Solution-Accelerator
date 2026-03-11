@@ -1,60 +1,51 @@
 # Troubleshooting
 
-## "Failed to start Claude SDK client: Failed to start Claude Code:"
+## MAF Agent Fails to Start / "Failed to acquire Foundry auth token"
 
-All three agents fail with an empty error message on Windows.
+The backend logs show an auth error when trying to invoke a hosted agent.
 
-**Cause 1 — CMD bypass:** The Claude Code CLI is installed as a `.CMD`
-batch file wrapper. When the SDK spawns it as a subprocess, `cmd.exe`
-mangles newlines and special characters in the `--system-prompt` argument.
+**Cause:** `DefaultAzureCredential` cannot acquire a token for the Foundry Responses API.
 
-**Cause 2 — Missing Foundry auth:** The Claude Code CLI requires
-Foundry-specific env vars (`CLAUDE_CODE_USE_FOUNDRY=true`,
-`ANTHROPIC_FOUNDRY_API_KEY`, `ANTHROPIC_FOUNDRY_BASE_URL`) for Azure
-authentication.
+**Fix:**
 
-**Cause 3 — Wrong asyncio event loop:** On Windows, uvicorn with
-`--reload` may use `SelectorEventLoop` which does not support
-`asyncio.create_subprocess_exec()`.
+1. **Local dev (Docker Compose):** Ensure you are logged in to Azure CLI:
+   ```bash
+   az login
+   az account set --subscription <your-subscription-id>
+   ```
 
-**Fix:** The `app/patches/__init__.py` module patches all three issues
-automatically. Restart the uvicorn server after pulling updates:
+2. **Azure (production):** Verify the backend Container App's managed identity has the `CognitiveServicesOpenAIUser` role on the Foundry account:
+   - Check `infra/modules/role-assignments.bicep`
+   - Re-run `azd provision` to reapply role assignments if missing
 
-```bash
-cd backend
-uvicorn app.main:app --reload
-```
-
-Verify the patches are applied by checking the server log for:
-```
-[patches] Applying SDK patches...
-[patches] Set WindowsProactorEventLoopPolicy (subprocess support)
-[patches] Set ANTHROPIC_API_KEY from AZURE_FOUNDRY_API_KEY (len=84)
-[patches] Set CLAUDE_CODE_USE_FOUNDRY=true + Foundry credentials
-[patches] Applied Windows CLI patch: ...node.EXE ...cli.js (bypassing .CMD wrapper)
-[patches] All patches applied.
-```
-
-> **Note:** These issues are Windows-only. Container deployments on
-> Linux are not affected.
+3. **Both:** Confirm `AZURE_AI_PROJECT_ENDPOINT` is set correctly:
+   ```
+   https://<account>.services.ai.azure.com/api/projects/<project-name>
+   ```
+   The `/api/projects/<project-name>` segment is required — the bare account endpoint will not work.
 
 ---
 
-## Agents Return Empty Responses (cost $0)
+## Agents Return Empty or Error Responses
 
-Agents connect successfully but produce no output.
+Agents connect but return `{"error": "...", "tool_results": []}` instead of structured output.
 
-**Cause:** When running inside a Claude Code editor session (VS Code), the
-environment contains a local-proxy API key that doesn't work for child
-processes.
+**Cause 1 — Wrong project endpoint:** `AZURE_AI_PROJECT_ENDPOINT` points to the bare account endpoint instead of the project endpoint.
 
-**Fix:** Ensure `AZURE_FOUNDRY_API_KEY` and `AZURE_FOUNDRY_ENDPOINT` are
-set in `backend/.env`. Check for these log lines:
+**Cause 2 — Agent not registered:** The hosted agent was not successfully deployed/registered with Foundry Agent Service.
 
-```
-[patches] Set ANTHROPIC_API_KEY from AZURE_FOUNDRY_API_KEY (len=84)
-[patches] Set CLAUDE_CODE_USE_FOUNDRY=true + Foundry credentials
-```
+**Cause 3 — Model deployment missing:** The `AZURE_OPENAI_DEPLOYMENT_NAME` (e.g., `gpt-5.4`) doesn't exist in the Foundry project.
+
+**Fix:**
+
+1. Verify agents are registered:
+   ```bash
+   python scripts/register_agents.py --list
+   ```
+
+2. Confirm the endpoint format in `AZURE_AI_PROJECT_ENDPOINT` includes `/api/projects/<project>`.
+
+3. In the Foundry portal under **Build** → **Deployments**, confirm the gpt-5.4 deployment exists and its name matches `AZURE_OPENAI_DEPLOYMENT_NAME` in each `agent.yaml`.
 
 ---
 
@@ -171,32 +162,28 @@ After killing a server process, the port remains in LISTENING state.
 
 ## Agent Returns Truncated/Incomplete Response
 
-One or more agents return partial data.
+One or more agents return partial data with missing top-level keys.
 
-**Cause:** The `agent_framework_claude` package may not propagate
-`structured_output` from the CLI's `ResultMessage` to `AgentResponse`.
+**Cause:** The agent's `response_format` structured output was not fully populated by the model response, typically due to token limits or a model timeout.
 
 **Symptoms in server logs:**
 
 ```
-[parse] text length=414
-[parse] Strategy 1: no fences found or none parsed
-[parse] Strategy 2 (brace-match backward) succeeded
-[DIAG] Saved Clinical raw result (4 keys)
+WARNING app.agents.orchestrator: Clinical Reviewer Agent returned incomplete result (attempt 1/2). Missing keys: clinical_extraction, clinical_summary. Retrying...
+INFO app.agents.orchestrator: Clinical Reviewer Agent succeeded on retry (attempt 2/2)
 ```
 
-A normal Clinical result has 6+ top-level keys and 2000-4000 characters.
+A normal Clinical result has 4 expected top-level keys (`diagnosis_validation`, `clinical_extraction`, `clinical_summary`, `tool_results`).
 
 **Mitigations (in place):**
 
-1. **`max_turns`** — explicit limits (15 for Clinical/Coverage, 5 for Compliance/Synthesis)
-2. **Result validation** — checks for expected top-level keys
-3. **Automatic retry** — retries once if validation fails:
-   ```
-   WARNING: Clinical Reviewer Agent returned incomplete result (attempt 1/2).
-   Missing keys: clinical_extraction, clinical_summary. Retrying...
-   ```
-4. **SSE warnings** — surfaces validation warnings to the frontend
+1. **Result validation** — checks for expected top-level keys via `_EXPECTED_KEYS` in `orchestrator.py`
+2. **Automatic retry** — retries once (`_MAX_AGENT_RETRIES = 1`) if validation fails
+3. **SSE warnings** — surfaces validation warnings to the frontend
+
+**If retries consistently fail:**
+- The agent's `HOSTED_AGENT_TIMEOUT_SECONDS` (default `180`) may be too low — increase it in `backend/.env`
+- Check the agent container logs in Foundry portal for model errors or context overflow
 
 ---
 

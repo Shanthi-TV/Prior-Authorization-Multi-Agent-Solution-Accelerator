@@ -16,7 +16,7 @@ setup_observability()
 
 app = FastAPI(
     title="Prior Authorization Review API",
-    description="Prior auth review powered by Claude via Microsoft Agent Framework",
+    description="Prior auth review powered by Azure OpenAI gpt-5.4 via Microsoft Agent Framework",
     version="0.1.0",
 )
 

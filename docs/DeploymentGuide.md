@@ -190,7 +190,7 @@ APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=
 AZURE_AI_PROJECT_ENDPOINT=https://<resource-name>.services.ai.azure.com
 
 # Model deployment name
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-5.4
 
 # MCP server URLs (DeepSense + Anthropic, defaults pre-configured in agent.yaml)
 MCP_NPI_REGISTRY=https://mcp.deepsense.ai/npi_registry/mcp
@@ -200,7 +200,7 @@ MCP_PUBMED=https://pubmed.mcp.claude.com/mcp
 MCP_CLINICAL_TRIALS=https://mcp.deepsense.ai/clinical_trials/mcp
 ```
 
-> **Key change from previous version:** MAF agents use `AZURE_AI_PROJECT_ENDPOINT` (not `AZURE_FOUNDRY_ENDPOINT`) and authenticate via `DefaultAzureCredential` (managed identity) rather than an API key. For local Docker Compose, ensure your local Azure CLI session is active or set `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` if running without CLI auth.
+> **Authentication note:** MAF agents use `DefaultAzureCredential` (managed identity on Azure, Azure CLI locally) — no API key required. For local Docker Compose, ensure your local Azure CLI session is active (`az login`) or set `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` if running without CLI auth.
 
 > **Where to find these values:**
 >
@@ -932,10 +932,8 @@ az containerapp create \
   --max-replicas 3 \
   --cpu 1 --memory 2Gi \
   --env-vars \
-    CLAUDE_CODE_USE_FOUNDRY=true \
-    ANTHROPIC_FOUNDRY_API_KEY=<your-api-key> \
-    ANTHROPIC_FOUNDRY_BASE_URL=https://<resource-name>.services.ai.azure.com/anthropic \
-    CLAUDE_MODEL=claude-sonnet-4-6 \
+    AZURE_AI_PROJECT_ENDPOINT=https://<account>.services.ai.azure.com/api/projects/<project> \
+    AZURE_OPENAI_DEPLOYMENT_NAME=gpt-5.4 \
     FRONTEND_ORIGIN=https://prior-auth-frontend.<env-unique-id>.<region>.azurecontainerapps.io
 ```
 
@@ -995,28 +993,26 @@ az group delete --name prior-auth-rg --yes --no-wait
 
 All environment variables used by the application, organized by purpose.
 
-### Microsoft Foundry (Claude API Routing)
+### Microsoft Foundry (MAF Agent Routing)
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `AZURE_FOUNDRY_API_KEY` | **Yes** | — | Your Microsoft Foundry **Project API key**. Found on the Foundry portal **Home** tab (top of page). Set in `backend/.env` for local development; mapped to `ANTHROPIC_FOUNDRY_API_KEY` at runtime by the SDK patches. |
-| `AZURE_FOUNDRY_ENDPOINT` | **Yes** | — | Your **Project endpoint** from the Foundry portal Home tab with `/anthropic` appended (e.g., `https://<resource-name>.services.ai.azure.com/anthropic`). Mapped to `ANTHROPIC_FOUNDRY_BASE_URL` at runtime. |
-| `CLAUDE_CODE_USE_FOUNDRY` | Auto | `true` | **Anthropic-defined flag** that tells the Claude CLI/SDK to route API calls through Microsoft Foundry instead of directly to `api.anthropic.com`. Set automatically by the backend patches and in Container App config — you do not need to set this manually. |
-| `ANTHROPIC_FOUNDRY_API_KEY` | Auto | — | The actual env var consumed by the Claude CLI for Foundry authentication. Auto-mapped from `AZURE_FOUNDRY_API_KEY` by the backend patches. In Azure Container Apps, this is set directly as a secret reference. |
-| `ANTHROPIC_FOUNDRY_BASE_URL` | Auto | — | The actual env var consumed by the Claude CLI for the Foundry endpoint. Auto-mapped from `AZURE_FOUNDRY_ENDPOINT` by the backend patches. |
+| `AZURE_AI_PROJECT_ENDPOINT` | **Yes** | — | Azure AI Foundry project endpoint. Format: `https://<account>.services.ai.azure.com/api/projects/<project>`. Found on the Foundry portal **Home** tab. Set in `backend/.env` for local dev; injected automatically by Bicep on Azure. |
 
 ### Model Configuration
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `CLAUDE_MODEL` | No | `claude-sonnet-4-6` | The Claude **deployment name** as shown in the Foundry portal under the **Build** tab → **Deployments**. Must exactly match the name of a model deployed in your Microsoft Foundry resource. Common values: `claude-opus-4-5`, `claude-sonnet-4-6`. |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | No | `gpt-5.4` | The Azure OpenAI **deployment name** as shown in the Foundry portal under **Build** → **Deployments**. Set per-agent in each `agent.yaml` under `agents/<name>/`. |
+
+> **Authentication:** The backend and all hosted agents authenticate via `DefaultAzureCredential` (managed identity on Azure, Azure CLI locally). No API key is required.
 
 ### Application
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `FRONTEND_ORIGIN` | No | `http://localhost:5173` | CORS origin for the frontend. Set to the frontend's deployed URL (e.g., `https://ca-frontend-xxx.azurecontainerapps.io`) in production. |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | No | — | Azure Application Insights connection string for observability. Auto-provisioned by Bicep when deploying with `azd up`. |
+| `FRONTEND_ORIGIN` | No | `http://localhost:5173` | CORS origin for the frontend. Set to the frontend's deployed URL in production. |
+| `APPLICATION_INSIGHTS_CONNECTION_STRING` | No | — | Azure Application Insights connection string for observability. Auto-provisioned by Bicep when deploying with `azd up`. |
 
 ### MCP Servers (Optional)
 
@@ -1033,22 +1029,23 @@ All environment variables used by the application, organized by purpose.
 ### How Variables Flow in Azure Deployment
 
 ```
-backend/.env (local)          azd environment (.azure/<env>/.env)
-─────────────────────         ─────────────────────────────────────
-AZURE_FOUNDRY_API_KEY    →    AZURE_FOUNDRY_API_KEY
-AZURE_FOUNDRY_ENDPOINT   →    AZURE_FOUNDRY_ENDPOINT
-CLAUDE_MODEL             →    CLAUDE_MODEL
-                               ↓ (main.parameters.json mapping)
-                         infra/main.bicep parameters
-                               ↓ (Container App env vars)
-                         ┌──────────────────────────────────────┐
-                         │ CLAUDE_CODE_USE_FOUNDRY = true       │
-                         │ ANTHROPIC_FOUNDRY_API_KEY (secret)   │
-                         │ ANTHROPIC_FOUNDRY_BASE_URL           │
-                         │ CLAUDE_MODEL                         │
-                         │ APPLICATIONINSIGHTS_CONNECTION_STRING│
-                         │ FRONTEND_ORIGIN                      │
-                         └──────────────────────────────────────┘
+backend/.env (local)                  azd environment (.azure/<env>/.env)
+─────────────────────────             ─────────────────────────────────────
+AZURE_AI_PROJECT_ENDPOINT        →    AZURE_AI_PROJECT_ENDPOINT
+AZURE_OPENAI_DEPLOYMENT_NAME     →    (per agent.yaml — not an azd var)
+FRONTEND_ORIGIN                  →    FRONTEND_ORIGIN
+                                        ↓ (main.parameters.json mapping)
+                                  infra/main.bicep parameters
+                                        ↓ (Container App env vars)
+                              ┌──────────────────────────────────────────┐
+                              │ AZURE_AI_PROJECT_ENDPOINT                │
+                              │ HOSTED_AGENT_CLINICAL_NAME               │
+                              │ HOSTED_AGENT_COMPLIANCE_NAME             │
+                              │ HOSTED_AGENT_COVERAGE_NAME               │
+                              │ HOSTED_AGENT_SYNTHESIS_NAME              │
+                              │ APPLICATION_INSIGHTS_CONNECTION_STRING   │
+                              │ FRONTEND_ORIGIN                          │
+                              └──────────────────────────────────────────┘
 ```
 
 ---

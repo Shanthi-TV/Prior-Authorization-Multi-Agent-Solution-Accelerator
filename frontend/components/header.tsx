@@ -24,12 +24,12 @@ export function Header() {
               </Badge>
             </div>
             <p className="mt-2 text-sm text-blue-100/90 max-w-lg">
-              Multi-agent clinical review powered by Claude &amp; Microsoft
+              Multi-agent clinical review powered by Azure OpenAI gpt-5.4 &amp; Microsoft
               Agent Framework with real-time MCP verification
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-blue-200/80">
               <Sparkles className="h-3 w-3" />
-              <span>3 specialized AI agents</span>
+              <span>4 specialized AI agents</span>
               <span className="mx-1">&#183;</span>
               <span>5 MCP data sources</span>
               <span className="mx-1">&#183;</span>

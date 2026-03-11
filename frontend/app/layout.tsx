@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Prior Authorization Review",
   description:
-    "AI-assisted clinical review powered by Claude & Microsoft Agent Framework",
+    "AI-assisted clinical review powered by Azure OpenAI gpt-5.4 & Microsoft Agent Framework",
 };
 
 export default function RootLayout({
