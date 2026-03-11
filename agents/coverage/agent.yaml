@@ -13,8 +13,8 @@ runtime: agent-framework
 version: "1.0.0"
 
 resources:
-  cpu: "1"
-  memory: "2Gi"
+  cpu: "2"
+  memory: "4Gi"
 
 env:
   # Azure AI Foundry project endpoint (injected by Foundry at deploy time)
