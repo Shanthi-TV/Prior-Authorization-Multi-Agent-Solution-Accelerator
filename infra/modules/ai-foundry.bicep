@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Microsoft Foundry — Resource + Project (new architecture)
 // Creates the Foundry resource (CognitiveServices/accounts) and a project
-// for deploying Claude models from the model catalog.
+// for deploying Azure OpenAI models (e.g., gpt-5.4) from the model catalog.
 //
 // Reference: https://learn.microsoft.com/en-us/azure/foundry/how-to/create-resource-template
 // ---------------------------------------------------------------------------

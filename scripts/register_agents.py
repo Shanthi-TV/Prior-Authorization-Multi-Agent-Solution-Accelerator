@@ -13,7 +13,7 @@ Required environment variables (set automatically by the postprovision hook):
   AZURE_CONTAINER_REGISTRY_ENDPOINT  — ACR login server (e.g. myacr.azurecr.io)
   AI_FOUNDRY_ACCOUNT_NAME            — Foundry account name
   AI_FOUNDRY_PROJECT_NAME            — Foundry project name
-  AZURE_OPENAI_DEPLOYMENT_NAME       — Model deployment name (default: gpt-4o)
+  AZURE_OPENAI_DEPLOYMENT_NAME       — Model deployment name (default: gpt-5.4)
 
 Optional environment variables:
   APPLICATION_INSIGHTS_CONNECTION_STRING — For agent observability (passed to agents)
@@ -31,7 +31,7 @@ def run() -> None:
     acr_endpoint = os.environ.get("AZURE_CONTAINER_REGISTRY_ENDPOINT", "").rstrip("/")
     account_name = os.environ.get("AI_FOUNDRY_ACCOUNT_NAME", "")
     project_name = os.environ.get("AI_FOUNDRY_PROJECT_NAME", "")
-    model_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
+    model_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-5.4")
     app_insights_cs = os.environ.get("APPLICATION_INSIGHTS_CONNECTION_STRING", "")
 
     if not project_endpoint:
@@ -113,9 +113,9 @@ def run() -> None:
             "memory": "1Gi",
             "env": {
                 "AZURE_AI_PROJECT_ENDPOINT": project_endpoint,
-                # Compliance uses gpt-4o-mini (sufficient for checklist validation)
+                # Compliance uses gpt-5.4 for consistency with all other agents
                 "AZURE_OPENAI_DEPLOYMENT_NAME": os.environ.get(
-                    "AZURE_OPENAI_COMPLIANCE_DEPLOYMENT_NAME", "gpt-4o-mini"
+                    "AZURE_OPENAI_COMPLIANCE_DEPLOYMENT_NAME", "gpt-5.4"
                 ),
                 "APPLICATION_INSIGHTS_CONNECTION_STRING": app_insights_cs,
             },

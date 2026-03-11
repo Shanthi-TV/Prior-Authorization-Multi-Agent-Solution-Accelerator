@@ -15,15 +15,11 @@ targetScope = 'subscription'
 param environmentName string
 
 @minLength(1)
-@description('Primary location for all resources. Must be East US 2 or Sweden Central for gpt-4o availability.')
-@allowed([
-  'eastus2'
-  'swedencentral'
-])
+@description('Primary location for all resources. gpt-5.4 is a Standard Global deployment and is available in all Azure regions.')
 param location string
 
-@description('Azure OpenAI deployment name to use across all agent containers (e.g., gpt-4o)')
-param azureOpenAIDeploymentName string = 'gpt-4o'
+@description('Azure OpenAI deployment name to use across all agent containers (e.g., gpt-5.4)')
+param azureOpenAIDeploymentName string = 'gpt-5.4'
 
 @description('Whether container images have been built to ACR (set automatically by postprovision hook)')
 param imagesBuilt string = ''

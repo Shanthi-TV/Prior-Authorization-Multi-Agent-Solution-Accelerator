@@ -11,27 +11,7 @@ hooks:
       run: |
         # ── Region Validation ────────────────────────────────────────
         $region = azd env get-value AZURE_LOCATION 2>$null
-        if ($region -and $region -notin @('eastus2', 'swedencentral')) {
-          Write-Host ""
-          Write-Host "===============================================================" -ForegroundColor Red
-          Write-Host " REGION NOT SUPPORTED" -ForegroundColor Red
-          Write-Host "===============================================================" -ForegroundColor Red
-          Write-Host ""
-          Write-Host " You selected region: $region" -ForegroundColor Yellow
-          Write-Host ""
-          Write-Host " Claude models on Microsoft Foundry are only available in:" -ForegroundColor White
-          Write-Host "   - East US 2      (eastus2)" -ForegroundColor Cyan
-          Write-Host "   - Sweden Central (swedencentral)" -ForegroundColor Cyan
-          Write-Host ""
-          Write-Host " Please run 'azd env new' and select a supported region," -ForegroundColor White
-          Write-Host " or change region with: azd env set AZURE_LOCATION eastus2" -ForegroundColor White
-          Write-Host ""
-          Write-Host " Learn more: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-claude" -ForegroundColor Gray
-          Write-Host ""
-          exit 1
-        }
-
-        # ── Pre-Deployment Verification ────────────────────────────
+        # gpt-5.4 is a Standard Global deployment — no region restriction required
         if ($region) {
           Write-Host ""
           Write-Host "===============================================================" -ForegroundColor Yellow
@@ -304,26 +284,7 @@ hooks:
       run: |
         # ── Region Validation ────────────────────────────────────────
         REGION=$(azd env get-value AZURE_LOCATION 2>/dev/null)
-        if [ -n "$REGION" ] && [ "$REGION" != "eastus2" ] && [ "$REGION" != "swedencentral" ]; then
-          Red='\033[0;31m'
-          Yellow='\033[1;33m'
-          Cyan='\033[0;36m'
-          White='\033[1;37m'
-          Gray='\033[0;90m'
-          NC='\033[0m'
-          printf "\n"
-          printf "${Red}===============================================================\n"
-          printf "${Red} REGION NOT SUPPORTED\n"
-          printf "${Red}===============================================================${NC}\n\n"
-          printf "${Yellow} You selected region: %s${NC}\n\n" "$REGION"
-          printf "${White} Claude models on Microsoft Foundry are only available in:${NC}\n"
-          printf "${Cyan}   - East US 2      (eastus2)${NC}\n"
-          printf "${Cyan}   - Sweden Central (swedencentral)${NC}\n\n"
-          printf "${White} Please run 'azd env new' and select a supported region,${NC}\n"
-          printf "${White} or change region with: azd env set AZURE_LOCATION eastus2${NC}\n\n"
-          printf "${Gray} Learn more: https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-claude${NC}\n\n"
-          exit 1
-        fi
+        # gpt-5.4 is a Standard Global deployment — no region restriction required
 
         # ── Pre-Deployment Verification ────────────────────────────
         if [ -n "$REGION" ]; then
@@ -634,7 +595,7 @@ hooks:
             python -m pip install "azure-ai-projects>=2.0.0" --quiet
         }
         $deploymentName = azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME 2>$null
-        if (-not $deploymentName) { $deploymentName = "gpt-4o" }
+        if (-not $deploymentName) { $deploymentName = "gpt-5.4" }
         $appInsightsCs = azd env get-value APPLICATION_INSIGHTS_CONNECTION_STRING 2>$null
         $env:AZURE_AI_PROJECT_ENDPOINT = $projectEndpoint
         $env:AZURE_CONTAINER_REGISTRY_ENDPOINT = $acrEndpoint
@@ -655,8 +616,8 @@ hooks:
         Write-Host "===============================================================" -ForegroundColor Yellow
         Write-Host ""
         Write-Host " Next Steps:" -ForegroundColor White
-        Write-Host "  1. Deploy gpt-4o in your Microsoft Foundry portal" -ForegroundColor White
-        Write-Host "     (Project > Deployments > Deploy model > gpt-4o)" -ForegroundColor Gray
+        Write-Host "  1. Ensure gpt-5.4 is deployed in your Microsoft Foundry portal" -ForegroundColor White
+        Write-Host "     (Project > Deployments > Deploy model > gpt-5.4)" -ForegroundColor Gray
         Write-Host "  2. If you used a custom deployment name, update it:" -ForegroundColor White
         Write-Host "     azd env set AZURE_OPENAI_DEPLOYMENT_NAME <name>" -ForegroundColor Gray
         Write-Host "     azd up  # redeploy to propagate the new name" -ForegroundColor Gray
@@ -740,7 +701,7 @@ hooks:
             printf "${White}  Installing azure-ai-projects...${NC}\n"
             python -m pip install "azure-ai-projects>=2.0.0" --quiet
         fi
-        DEPLOYMENT_NAME=$(azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME 2>/dev/null || echo "gpt-4o")
+        DEPLOYMENT_NAME=$(azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME 2>/dev/null || echo "gpt-5.4")
         APP_INSIGHTS_CS=$(azd env get-value APPLICATION_INSIGHTS_CONNECTION_STRING 2>/dev/null || true)
         export AZURE_AI_PROJECT_ENDPOINT="$PROJECT_ENDPOINT"
         export AZURE_CONTAINER_REGISTRY_ENDPOINT="$ACR_ENDPOINT"
@@ -759,8 +720,8 @@ hooks:
         printf "${Green} DEPLOYMENT COMPLETE\n"
         printf "${Yellow}===============================================================${NC}\n\n"
         printf "${White} Next Steps:${NC}\n"
-        printf "  1. Deploy gpt-4o in your Microsoft Foundry portal\n"
-        printf "     (Project > Deployments > Deploy model > gpt-4o)\n"
+        printf "  1. Ensure gpt-5.4 is deployed in your Microsoft Foundry portal\n"
+        printf "     (Project > Deployments > Deploy model > gpt-5.4)\n"
         printf "  2. If you used a custom deployment name, update it:\n"
         printf "     azd env set AZURE_OPENAI_DEPLOYMENT_NAME <name>\n"
         printf "     azd up  # redeploy to propagate the new name\n\n"
