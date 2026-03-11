@@ -21,9 +21,9 @@ env:
   - name: AZURE_AI_PROJECT_ENDPOINT
     secretRef: azure-ai-project-endpoint
 
-  # Model deployment to use (gpt-4o recommended for clinical reasoning depth)
+  # Model deployment to use (gpt-5.4 recommended for clinical reasoning depth)
   - name: AZURE_OPENAI_DEPLOYMENT_NAME
-    value: gpt-4o
+    value: gpt-5.4
 
   # DeepSense ICD-10 MCP server
   - name: MCP_ICD10_CODES

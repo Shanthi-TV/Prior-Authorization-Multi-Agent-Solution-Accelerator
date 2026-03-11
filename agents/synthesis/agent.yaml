@@ -22,9 +22,9 @@ env:
   - name: AZURE_AI_PROJECT_ENDPOINT
     secretRef: azure-ai-project-endpoint
 
-  # Model deployment to use (gpt-4o recommended for complex multi-agent synthesis)
+  # Model deployment to use (gpt-5.4 recommended for synthesis and decision scoring)
   - name: AZURE_OPENAI_DEPLOYMENT_NAME
-    value: gpt-4o
+    value: gpt-5.4
 
   # Azure Application Insights (optional)
   - name: APPLICATION_INSIGHTS_CONNECTION_STRING

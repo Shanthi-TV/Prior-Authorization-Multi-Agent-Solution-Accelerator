@@ -21,9 +21,9 @@ env:
   - name: AZURE_AI_PROJECT_ENDPOINT
     secretRef: azure-ai-project-endpoint
 
-  # Model deployment to use (gpt-4o recommended for policy reasoning)
+  # Model deployment to use (gpt-5.4 recommended for coverage criteria assessment)
   - name: AZURE_OPENAI_DEPLOYMENT_NAME
-    value: gpt-4o
+    value: gpt-5.4
 
   # DeepSense NPI Registry MCP server
   - name: MCP_NPI_REGISTRY
