@@ -44,6 +44,7 @@ import {
   HelpCircle,
   ChevronDown,
   ChevronRight,
+  GitBranch,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -787,13 +788,163 @@ function CoverageTab({ data: raw }: { data: CoverageResult }) {
 
 interface AgentDetailsProps {
   results: AgentResults;
+  synthesis?: SynthesisData;
 }
 
-export function AgentDetails({ results }: AgentDetailsProps) {
+// Minimal shape of synthesis data needed for this tab — avoids importing
+// the full ReviewResponse type and creating a circular dep.
+interface SynthesisData {
+  recommendation: string;
+  confidence: number;
+  confidence_level: string;
+  decision_gate?: string;
+  criteria_summary?: string;
+  clinical_rationale?: string;
+  missing_documentation?: string[];
+}
+
+type GateStatus = "pass" | "fail" | "na";
+
+function getGateStatuses(decisionGate: string): [GateStatus, GateStatus, GateStatus] {
+  switch (decisionGate) {
+    case "approved":           return ["pass", "pass", "pass"];
+    case "gate_1_provider":    return ["fail", "na",   "na"];
+    case "gate_2_codes":       return ["pass", "fail", "na"];
+    case "gate_3_necessity":   return ["pass", "pass", "fail"];
+    default:                   return ["na",   "na",   "na"];
+  }
+}
+
+const GATES = [
+  {
+    label: "Gate 1 — Provider Verification",
+    description: "NPI valid and active in NPPES registry",
+  },
+  {
+    label: "Gate 2 — Code Validation",
+    description: "All ICD-10 and CPT/HCPCS codes valid and billable",
+  },
+  {
+    label: "Gate 3 — Medical Necessity",
+    description: "All coverage criteria MET with sufficient clinical evidence",
+  },
+];
+
+function GateIcon({ status }: { status: GateStatus }) {
+  if (status === "pass") return <CheckCircle2 className="h-4 w-4 text-success shrink-0" />;
+  if (status === "fail") return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
+  return <HelpCircle className="h-4 w-4 text-muted-foreground shrink-0" />;
+}
+
+function SynthesisTab({ data }: { data: SynthesisData }) {
+  const isApprove = data.recommendation === "approve";
+  const confidenceVal = data.confidence <= 1
+    ? Math.round(data.confidence * 100)
+    : Math.round(data.confidence);
+  const gateStatuses = getGateStatuses(data.decision_gate ?? "");
+  const missingDocs = data.missing_documentation ?? [];
+
+  return (
+    <div className="space-y-5 pt-4">
+      {/* Decision + confidence header */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge
+            variant={isApprove ? "success" : "warning"}
+            className="text-sm px-3 py-1"
+          >
+            {isApprove ? "APPROVE" : "PEND FOR REVIEW"}
+          </Badge>
+          <Badge variant="outline">{data.confidence_level}</Badge>
+          {data.criteria_summary && (
+            <span className="text-sm text-muted-foreground">{data.criteria_summary}</span>
+          )}
+        </div>
+        <ConfidenceBar value={confidenceVal} className="max-w-sm" />
+      </div>
+
+      {/* 3-gate pipeline */}
+      <div className="space-y-2">
+        <h4 className="text-sm font-semibold flex items-center gap-1.5">
+          <GitBranch className="h-4 w-4 text-primary" />
+          Decision Gate Pipeline
+        </h4>
+        <div className="space-y-2">
+          {GATES.map((gate, i) => {
+            const status = gateStatuses[i];
+            const rowCls =
+              status === "pass"
+                ? "bg-success/5 border-success/30"
+                : status === "fail"
+                  ? "bg-destructive/5 border-destructive/30"
+                  : "bg-muted/20 border-muted/40";
+            return (
+              <div
+                key={i}
+                className={`flex items-start gap-3 rounded-lg border p-3 ${rowCls}`}
+              >
+                <GateIcon status={status} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{gate.label}</p>
+                  <p className="text-xs text-muted-foreground">{gate.description}</p>
+                </div>
+                <Badge
+                  variant={
+                    status === "pass"
+                      ? "success"
+                      : status === "fail"
+                        ? "destructive"
+                        : "secondary"
+                  }
+                  className="shrink-0 text-xs"
+                >
+                  {status === "pass" ? "PASS" : status === "fail" ? "FAIL" : "N/A"}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Clinical rationale */}
+      {data.clinical_rationale && (
+        <CollapsibleSection
+          title="Clinical Rationale"
+          icon={ScrollText}
+          defaultOpen
+        >
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+            {data.clinical_rationale}
+          </p>
+        </CollapsibleSection>
+      )}
+
+      {/* Missing documentation */}
+      {missingDocs.length > 0 && (
+        <CollapsibleSection
+          title={`Missing Documentation (${missingDocs.length})`}
+          icon={AlertTriangle}
+        >
+          <ul className="space-y-1.5">
+            {missingDocs.map((doc, i) => (
+              <li key={i} className="text-sm text-muted-foreground flex items-start gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+                {doc}
+              </li>
+            ))}
+          </ul>
+        </CollapsibleSection>
+      )}
+    </div>
+  );
+}
+
+export function AgentDetails({ results, synthesis }: AgentDetailsProps) {
   const tabs = [
     { id: "compliance", label: "Compliance", icon: ClipboardCheck, data: results.compliance },
-    { id: "clinical", label: "Clinical", icon: Stethoscope, data: results.clinical },
-    { id: "coverage", label: "Coverage", icon: Shield, data: results.coverage },
+    { id: "clinical",   label: "Clinical",   icon: Stethoscope,    data: results.clinical },
+    { id: "coverage",   label: "Coverage",   icon: Shield,          data: results.coverage },
+    ...(synthesis ? [{ id: "synthesis", label: "Synthesis", icon: GitBranch, data: synthesis as object }] : []),
   ].filter((t) => t.data);
 
   if (tabs.length === 0) return null;
@@ -830,6 +981,11 @@ export function AgentDetails({ results }: AgentDetailsProps) {
           {results.coverage && (
             <TabsContent value="coverage">
               <CoverageTab data={results.coverage} />
+            </TabsContent>
+          )}
+          {synthesis && (
+            <TabsContent value="synthesis">
+              <SynthesisTab data={synthesis} />
             </TabsContent>
           )}
         </Tabs>

@@ -270,7 +270,7 @@ export function ReviewDashboard({ review: rawReview }: ReviewDashboardProps) {
 
       {/* Agent details */}
       {review.agent_results && (
-        <AgentDetails results={review.agent_results} />
+        <AgentDetails results={review.agent_results} synthesis={review} />
       )}
 
       {/* Decision panel */}

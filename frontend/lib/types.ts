@@ -155,6 +155,8 @@ export interface ReviewResponse {
   missing_documentation: string[];
   documentation_gaps: DocumentationGap[];
   policy_references: string[];
+  decision_gate?: string;   // "gate_1_provider" | "gate_2_codes" | "gate_3_necessity" | "approved"
+  criteria_summary?: string; // e.g. "8 of 8 criteria MET"
   disclaimer: string;
   agent_results?: AgentResults;
   audit_trail?: AuditTrail;
