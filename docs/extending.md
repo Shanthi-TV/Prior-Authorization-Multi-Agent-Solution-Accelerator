@@ -315,7 +315,7 @@ Edit `_KNOWN_CODES` in `backend/app/services/cpt_validation.py`.
 
 ---
 
-## Use MCP with Non-Claude Models
+## Use MCP with Azure OpenAI Models
 
 Use `MCPStreamableHTTPTool` from the Agent Framework:
 

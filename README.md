@@ -128,7 +128,7 @@ The orchestrator coordinates four phases with four specialized agents:
 - [Prior Auth Review Skill](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill)
 - [Build AI Agents with Claude Agent SDK and Microsoft Agent Framework](https://devblogs.microsoft.com/semantic-kernel/build-ai-agents-with-claude-agent-sdk-and-microsoft-agent-framework/)
 - [Microsoft Agent Framework — Claude Agent](https://learn.microsoft.com/en-us/agent-framework/user-guide/agents/agent-types/anthropic-agent)
-- [Microsoft Foundry Claude Models](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/use-foundry-models-claude)
+- [Azure OpenAI GPT-5.4 in Microsoft Foundry](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/introducing-gpt-5-4-in-microsoft-foundry/4499785)
 - [Claude Prior Auth Review Tutorial](https://claude.com/resources/tutorials/how-to-use-the-prior-auth-review-sample-skill-with-claude-2ggy8)
 - [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
 - [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview)
@@ -262,7 +262,7 @@ Follow the quick deploy steps on the deployment guide to deploy this solution to
 
 To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create resource groups and resources. The **Microsoft Foundry Resource and Project** are automatically provisioned by `azd up`. The solution uses the **Azure OpenAI gpt-5.4** model, which is automatically deployed as part of `azd up` — see [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) for details.
 
-> ⚠️ **Region requirement:** Azure OpenAI **gpt-5.4** is currently available only in **East US 2** and **Sweden Central**. You must deploy to one of these regions. See [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) for the latest region availability.
+> ⚠️ **Region requirement:** Azure OpenAI **gpt-5.4** is available via **Standard Global** deployment in Microsoft Foundry — no specific region restriction applies. See [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) for the latest availability.
 
 Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers. Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to estimate costs for your subscription.
 

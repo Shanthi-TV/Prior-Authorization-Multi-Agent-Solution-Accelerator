@@ -36,7 +36,7 @@ The application uses a **pure HTTP dispatch** architecture. The FastAPI backend 
 └───────────────┬───────────────────────────────────────────────┘
                 │ MCP tools / model runtime
 ┌───────────────▼───────────────────────────────────────────────┐
-│ MCP servers + Claude model endpoint                           │
+│ MCP servers + Azure OpenAI gpt-5.4 endpoint                  │
 │ NPI Registry • ICD-10 • CMS Coverage • Clinical Trials • PubMed │
 └───────────────────────────────────────────────────────────────┘
 ```

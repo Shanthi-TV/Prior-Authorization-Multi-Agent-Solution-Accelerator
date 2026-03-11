@@ -44,15 +44,15 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 | [Azure Container Registry](https://learn.microsoft.com/en-us/azure/container-registry/) | Storing Docker images | [Pricing](https://azure.microsoft.com/en-us/pricing/details/container-registry/) |
 | [Azure Application Insights](https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview) | Observability and tracing (optional) | [Pricing](https://azure.microsoft.com/en-us/pricing/details/monitor/) |
 
-> **Note:** The Microsoft Foundry Resource and Project are automatically provisioned by `azd up`. You only need to deploy the Claude model manually after provisioning (see Step 4.3). Hosted specialist agents, if used, are deployed separately and then wired in through environment variables.
+> **Note:** The Microsoft Foundry Resource and Project are automatically provisioned by `azd up`. The **gpt-5.4** model is deployed from the Foundry model catalog after provisioning (see Step 4.3).
 
-**Supported Regions:** Claude models on Microsoft Foundry are currently available only in **East US 2** and **Sweden Central**. You must deploy to one of these regions.
+**Region Availability:** GPT-5.4 is available via **Standard Global** deployment in Microsoft Foundry — no specific region restriction. You can deploy to any supported Azure region.
 
-🔍 **Check Availability:** See [Use Foundry Models Claude](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-claude) for the latest region availability.
+🔍 **Model Details:** See [GPT-5.4 in Microsoft Foundry](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/introducing-gpt-5-4-in-microsoft-foundry/4499785) for capabilities and pricing.
 
-### 1.3 Claude Model Availability
+### 1.3 GPT-5.4 Model Availability
 
-> **Note:** You do **not** need to create a Foundry project or deploy the Claude model before running `azd up`. Everything is provisioned automatically. You will deploy the Claude model in [Step 4.3](#43-deploy-claude-model--configure-credentials) after infrastructure provisioning completes.
+> **Note:** You do **not** need to create a Foundry project or deploy the gpt-5.4 model before running `azd up`. Everything is provisioned automatically. You will deploy the gpt-5.4 model in [Step 4.3](#43-deploy-gpt-54-model--configure-credentials) after infrastructure provisioning completes.
 
 ---
 
@@ -205,16 +205,13 @@ MCP_CLINICAL_TRIALS=https://mcp.deepsense.ai/clinical_trials/mcp
 > **Where to find these values:**
 >
 > 1. Go to [ai.azure.com](https://ai.azure.com/) → select your project
-> 2. On the **Home** tab you will see three fields at the top:
->    - **Project API key** — This is your `AZURE_FOUNDRY_API_KEY`.
->    - **Project endpoint** (e.g., `https://<resource-name>.services.ai.azure.com`) — Append `/anthropic` to get your `AZURE_FOUNDRY_ENDPOINT`.
->    - **Azure OpenAI endpoint** — Not used for Claude models.
-> 3. The **deployment name** of your Claude model (e.g., `claude-sonnet-4-6`) is your `CLAUDE_MODEL`. Find it under the **Build** tab → **Deployments** in the left menu.
+> 2. On the **Home** tab you will see:
+>    - **Project endpoint** (e.g., `https://<resource-name>.services.ai.azure.com/api/projects/<project-name>`) → `AZURE_AI_PROJECT_ENDPOINT`
+> 3. The **deployment name** of your gpt-5.4 model (e.g., `gpt-5.4`) → `AZURE_OPENAI_DEPLOYMENT_NAME`. Find it under the **Build** tab → **Deployments** in the left menu.
 >
 > ```
-> Project endpoint = "https://<resource-name>.services.ai.azure.com"   + "/anthropic"  →  AZURE_FOUNDRY_ENDPOINT
-> Project API key  = "F8RHd..."                                                        →  AZURE_FOUNDRY_API_KEY
-> Deployment name  = "claude-sonnet-4-6"                                                →  CLAUDE_MODEL
+> Project endpoint    = "https://<resource-name>.services.ai.azure.com/api/projects/<project>"  →  AZURE_AI_PROJECT_ENDPOINT
+> Deployment name     = "gpt-5.4"                                                                →  AZURE_OPENAI_DEPLOYMENT_NAME
 > ```
 
 If you are using hosted agents, keep the Claude credentials configured for any
@@ -299,11 +296,11 @@ azd up
 **During deployment, you'll be prompted for:**
 1. **Environment name** (e.g., `prior-auth-dev`) — a label for your deployment, used in the resource group name
 2. **Azure subscription** selection
-3. **Azure region** — select **East US 2** (`eastus2`) or **Sweden Central** (`swedencentral`)
+3. **Azure region** — select any supported Azure region (gpt-5.4 is available via Standard Global)
 4. **Azure Foundry API key** and **endpoint** — press **Enter** to skip (leave blank). These are configured in Step 4.3 after the Foundry resources are provisioned.
 
 **What gets deployed:**
-- **Microsoft Foundry Resource + Project** (for Claude model deployment)
+- **Microsoft Foundry Resource + Project** (for Azure OpenAI gpt-5.4 deployment)
 - Azure Container Registry (also used for remote image builds — no local Docker required)
 - Azure Container Apps Environment
 - Backend Container App (Python/FastAPI, port 8000, 2 CPU / 4Gi RAM, min 1 replica)
@@ -315,45 +312,42 @@ azd up
 
 **Expected Duration:** ~10 minutes for initial provisioning + deployment.
 
-**⚠️ Deployment Issues:** If you encounter errors or timeouts, try the other supported region (East US 2 or Sweden Central) as there may be capacity constraints. For detailed error solutions, see our [Troubleshooting Guide](./troubleshooting.md).
+**⚠️ Deployment Issues:** If you encounter errors or timeouts, check the [Troubleshooting Guide](./troubleshooting.md) for detailed error solutions.
 
-### 4.3 Deploy Claude Model & Configure Credentials
+### 4.3 Deploy GPT-5.4 Model & Configure Credentials
 
-After `azd up` completes, the Microsoft Foundry Resource and Project are provisioned. Now deploy the Claude model:
+After `azd up` completes, the Microsoft Foundry Resource and Project are provisioned. Now deploy the gpt-5.4 model:
 
 **Step 1: Open the Microsoft Foundry Portal**
 
 Go to [ai.azure.com](https://ai.azure.com/) and select the provisioned project (named **"Prior Auth Project"** or `proj-aif-*`). Make sure the **Foundry (new)** toggle is on.
 
-**Step 2: Deploy the Claude Model**
+**Step 2: Deploy the GPT-5.4 Model**
 
 1. In the Foundry portal, click the **Discover** tab → select **Models** in the left menu
-2. Search for **Claude Sonnet 4.6** (or your preferred Claude model)
-3. Click the model → **Deploy** and follow the prompts
-4. Once deployed, the **Project API key** and **Project endpoint** are available on the **Home** tab
+2. Search for **gpt-5.4**
+3. Click the model → **Deploy** and follow the prompts (select **Standard Global** deployment type)
+4. Once deployed, note the **deployment name** and the **Project endpoint** from the **Home** tab
 
-📖 **Detailed Instructions:** See [Use Foundry Models Claude](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/how-to/use-foundry-models-claude) for step-by-step guidance.
+📖 **Model Details:** See [GPT-5.4 in Microsoft Foundry](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/introducing-gpt-5-4-in-microsoft-foundry/4499785) for capabilities and pricing.
 
-**Step 3: Configure the Backend with Claude Credentials**
+**Step 3: Configure the Backend with GPT-5.4 Credentials**
 
-Set the API key, base URL, and deployment name in your azd environment. These values come from the **Home** tab of the Foundry portal:
+Set the project endpoint and deployment name in your azd environment:
 
 > **Where to find these values:**
 > 1. Go to [ai.azure.com](https://ai.azure.com/) → select your newly provisioned project
-> 2. On the **Home** tab you will see:
->    - **Project API key** → `AZURE_FOUNDRY_API_KEY`
->    - **Project endpoint** (e.g., `https://<resource-name>.services.ai.azure.com`) — append `/anthropic` → `AZURE_FOUNDRY_ENDPOINT`
-> 3. The **deployment name** of your Claude model (e.g., `claude-sonnet-4-6`) → `CLAUDE_MODEL`. Find it under **Build** tab → **Deployments**.
+> 2. On the **Home** tab: copy the **Project endpoint** (e.g., `https://<resource-name>.services.ai.azure.com/api/projects/<project-name>`) → `AZURE_AI_PROJECT_ENDPOINT`
+> 3. Under **Build** tab → **Deployments**: copy the deployment name → `AZURE_OPENAI_DEPLOYMENT_NAME`
 
 ```bash
-azd env set AZURE_FOUNDRY_API_KEY <your-api-key>
-azd env set AZURE_FOUNDRY_ENDPOINT https://<resource-name>.services.ai.azure.com/anthropic
-azd env set CLAUDE_MODEL claude-sonnet-4-6    # Must match your deployment name
+azd env set AZURE_AI_PROJECT_ENDPOINT https://<resource-name>.services.ai.azure.com/api/projects/<project-name>
+azd env set AZURE_OPENAI_DEPLOYMENT_NAME gpt-5.4    # Must match your deployment name
 ```
 
- > **Important:** The endpoint URL must include the `/anthropic` suffix. Copy the **Project endpoint** from the Foundry Home tab and append `/anthropic`.
+> **Authentication:** The backend uses `DefaultAzureCredential` (managed identity) — no API key is required.
 
-Then apply the credentials to the deployed backend. You have two options:
+Then apply the configuration to the deployed backend. You have two options:
 
 **Option A: Quick update (~10 seconds)** — updates the Container App directly without rebuilding images:
 
@@ -361,15 +355,11 @@ Then apply the credentials to the deployed backend. You have two options:
 APP_NAME=$(azd env get-value BACKEND_CONTAINER_APP_NAME)
 RG_NAME=$(azd env get-value AZURE_RESOURCE_GROUP)
 
-# Update the API key secret
-az containerapp secret set --name $APP_NAME --resource-group $RG_NAME \
-  --secrets foundry-api-key=$(azd env get-value AZURE_FOUNDRY_API_KEY)
-
-# Update endpoint and model env vars
+# Update project endpoint and deployment name env vars
 az containerapp update --name $APP_NAME --resource-group $RG_NAME \
   --set-env-vars \
-    ANTHROPIC_FOUNDRY_BASE_URL=$(azd env get-value AZURE_FOUNDRY_ENDPOINT) \
-    CLAUDE_MODEL=$(azd env get-value CLAUDE_MODEL)
+    AZURE_AI_PROJECT_ENDPOINT=$(azd env get-value AZURE_AI_PROJECT_ENDPOINT) \
+    AZURE_OPENAI_DEPLOYMENT_NAME=$(azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME)
 ```
 
 **Option B: Full redeploy (~5 minutes)** — use when you also need to update application code:
