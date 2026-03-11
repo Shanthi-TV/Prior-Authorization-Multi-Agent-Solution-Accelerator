@@ -245,6 +245,16 @@ Follow the quick deploy steps on the deployment guide to deploy this solution to
 | [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/amitmukh/prior-auth-maf) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/amitmukh/prior-auth-maf) | [![Open in Visual Studio Code Web](https://img.shields.io/static/v1?style=for-the-badge&label=Visual%20Studio%20Code%20(Web)&message=Open&color=blue&logo=visualstudiocode&logoColor=white)](https://vscode.dev/azure/?vscode-azure-exp=foundry&agentPayload=eyJiYXNlVXJsIjogImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9hbWl0bXVraC9wcmlvci1hdXRoLW1hZi9yZWZzL2hlYWRzL21haW4vaW5mcmEvdnNjb2RlX3dlYiIsICJpbmRleFVybCI6ICIvaW5kZXguanNvbiIsICJ2YXJpYWJsZXMiOiB7ImFnZW50SWQiOiAiIiwgImNvbm5lY3Rpb25TdHJpbmciOiAiIiwgInRocmVhZElkIjogIiIsICJ1c2VyTWVzc2FnZSI6ICIiLCAicGxheWdyb3VuZE5hbWUiOiAiIiwgImxvY2F0aW9uIjogIiIsICJzdWJzY3JpcHRpb25JZCI6ICIiLCAicmVzb3VyY2VJZCI6ICIiLCAicHJvamVjdFJlc291cmNlSWQiOiAiIiwgImVuZHBvaW50IjogIiJ9LCAiY29kZVJvdXRlIjogWyJhaS1wcm9qZWN0cy1zZGsiLCAicHl0aG9uIiwgImRlZmF1bHQtYXp1cmUtYXV0aCIsICJlbmRwb2ludCJdfQ==) |
 |---|---|---|
 
+> **Which button for which mode?**
+> All three buttons open the same dev environment (devcontainer) with `azd`, Azure CLI, Docker, and Node pre-installed. Once inside, you choose your runtime mode:
+>
+> | Goal | Command | Runtime mode |
+> |------|---------|-------------|
+> | **Deploy to Azure** (recommended) | `azd up` | **Foundry Hosted Agent mode** — agents run as Foundry-managed containers; only the backend + frontend land in your Azure Container Apps |
+> | **Run everything locally** | `docker compose up` | **Docker Compose mode** — all 4 agent containers + backend + frontend run on your local machine; no Azure deployment needed |
+>
+> The **Quick Deploy** path described below uses `azd up` → Foundry Hosted Agent mode.
+
 > ⚠️ **Important: Check Microsoft Foundry Quota Availability**
 > <br/>To ensure Claude models are available in your target region, please check the [model availability instructions](./docs/DeploymentGuide.md#13-claude-model-access-pre-check) before you deploy the solution.
 
