@@ -68,7 +68,9 @@ def main() -> None:
     )
 
     # --- Serve as HTTP endpoint for Foundry hosting ---
-    from_agent_framework(agent).run()
+    # Explicit port=8000: from_agent_framework defaults to 8088 but our
+    # Dockerfiles EXPOSE 8000 and docker-compose healthchecks use port 8000.
+    from_agent_framework(agent).run(port=8000)
 
 
 if __name__ == "__main__":

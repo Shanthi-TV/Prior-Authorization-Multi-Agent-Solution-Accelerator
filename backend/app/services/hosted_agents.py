@@ -113,11 +113,10 @@ async def _invoke_direct_http(agent_name: str, url: str, payload: dict) -> dict:
     """Invoke agent via direct HTTP — Docker Compose / local dev mode.
 
     Uses the Foundry Responses API envelope expected by from_agent_framework().
+    Input must be a flat array of message objects, not wrapped in a {messages: []} dict.
     """
     request_body = {
-        "input": {
-            "messages": [{"role": "user", "content": json.dumps(payload)}]
-        }
+        "input": [{"role": "user", "content": json.dumps(payload)}]
     }
     responses_url = url.rstrip("/") + "/responses"
 
@@ -160,7 +159,9 @@ async def _invoke_foundry_agent(
     ACA managed identity on Azure (no secrets required).
     """
     project_endpoint = settings.AZURE_AI_PROJECT_ENDPOINT.rstrip("/")
-    responses_url = f"{project_endpoint}/responses"
+    # Foundry routes agent_reference requests through the OpenAI-compatible path.
+    # {project_endpoint}/openai/v1/responses — NOT {project_endpoint}/responses.
+    responses_url = f"{project_endpoint}/openai/v1/responses"
 
     # Standard Foundry Responses API format with agent_reference routing
     request_body = {
