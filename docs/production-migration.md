@@ -155,15 +155,15 @@ CREATE INDEX idx_documents_review ON documents(review_id);
 # PostgreSQL
 DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/priorauth
 
-# Azure Blob Storage
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;...
-# OR use managed identity:
+# Azure Blob Storage — prefer managed identity (backend Container App has system-assigned identity)
 AZURE_STORAGE_ACCOUNT_URL=https://<account>.blob.core.windows.net
+# Fall back to connection string only if managed identity is not available:
+# AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;...
 ```
 
 ## What NOT to Change
 
-- **Agent code** — agents receive and return plain dicts, unaware of storage
+- **Agent containers** — the four MAF Hosted Agent containers (clinical, coverage, compliance, synthesis) call the Foundry Responses API and return JSON. They are completely unaware of the backend's storage layer.
 - **Frontend** — the API contract stays the same
 - **MCP server configuration** — independent of storage
 - **Notification letter templates** — produce same output regardless of storage
