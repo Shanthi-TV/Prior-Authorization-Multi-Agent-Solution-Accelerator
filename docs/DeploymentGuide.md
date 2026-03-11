@@ -186,7 +186,7 @@ APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=...;IngestionEndpoint=
 **Env vars required by each MAF agent container** (set via `agent.yaml` on Foundry, or add to root `.env` for Docker Compose):
 
 ```env
-# Azure AI Foundry project endpoint (replaces AZURE_FOUNDRY_ENDPOINT for MAF agents)
+# Microsoft Foundry project endpoint (required by all 4 agent containers)
 AZURE_AI_PROJECT_ENDPOINT=https://<resource-name>.services.ai.azure.com
 
 # Model deployment name
@@ -297,7 +297,7 @@ azd up
 1. **Environment name** (e.g., `prior-auth-dev`) — a label for your deployment, used in the resource group name
 2. **Azure subscription** selection
 3. **Azure region** — select any supported Azure region (gpt-5.4 is available via Standard Global)
-4. **Azure Foundry API key** and **endpoint** — press **Enter** to skip (leave blank). These are configured in Step 4.3 after the Foundry resources are provisioned.
+4. **Foundry API key** and **endpoint** — press **Enter** to skip (leave blank). These are configured in Step 4.3 after the Foundry resources are provisioned.
 
 **What gets deployed:**
 - **Microsoft Foundry Resource + Project** (for Azure OpenAI gpt-5.4 deployment)
@@ -997,7 +997,7 @@ All environment variables used by the application, organized by purpose.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `AZURE_AI_PROJECT_ENDPOINT` | **Yes** | — | Azure AI Foundry project endpoint. Format: `https://<account>.services.ai.azure.com/api/projects/<project>`. Found on the Foundry portal **Home** tab. Set in `backend/.env` for local dev; injected automatically by Bicep on Azure. |
+| `AZURE_AI_PROJECT_ENDPOINT` | **Yes** | — | Microsoft Foundry project endpoint. Format: `https://<account>.services.ai.azure.com/api/projects/<project>`. Found on the Foundry portal **Home** tab. Set in `backend/.env` for local dev; injected automatically by Bicep on Azure. |
 
 ### Model Configuration
 

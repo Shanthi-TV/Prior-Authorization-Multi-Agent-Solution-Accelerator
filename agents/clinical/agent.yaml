@@ -17,7 +17,7 @@ resources:
   memory: "4Gi"
 
 env:
-  # Azure AI Foundry project endpoint (injected by Foundry at deploy time)
+  # Microsoft Foundry project endpoint (injected by Foundry at deploy time)
   - name: AZURE_AI_PROJECT_ENDPOINT
     secretRef: azure-ai-project-endpoint
 

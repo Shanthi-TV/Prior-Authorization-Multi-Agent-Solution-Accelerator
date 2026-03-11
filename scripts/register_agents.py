@@ -202,7 +202,7 @@ def run() -> None:
     print("  All 4 agents registered successfully.")
     print(
         "  Note: if auto-start failed, start each agent from the Foundry portal:\n"
-        "  Azure AI Foundry → your project → Agents → select agent → Start"
+        "  Microsoft Foundry portal → your project → Agents → select agent → Start"
     )
 
 

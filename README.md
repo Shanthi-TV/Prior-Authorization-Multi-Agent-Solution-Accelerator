@@ -13,7 +13,7 @@ and an audit justification document.
 The solution supports **two runtime modes**:
 
 - **Local / Docker Compose mode** — all 4 agent containers + backend + frontend run locally via `docker compose up`
-- **Foundry Hosted Agent mode** — agents are registered with Azure AI Foundry Hosted Agents via `scripts/register_agents.py`; Foundry manages the container lifecycle. The backend dispatches through the Foundry project endpoint using `agent_reference` routing and `DefaultAzureCredential` — no per-agent ACA URLs required
+- **Foundry Hosted Agent mode** — agents are registered with Microsoft Foundry Hosted Agents via `scripts/register_agents.py`; Foundry manages the container lifecycle. The backend dispatches through the Foundry project endpoint using `agent_reference` routing and `DefaultAzureCredential` — no per-agent ACA URLs required
 
 Incorporates best practices from the
 [Anthropic prior-auth-review-skill](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill):

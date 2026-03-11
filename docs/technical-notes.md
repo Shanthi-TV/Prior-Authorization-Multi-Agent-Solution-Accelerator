@@ -23,7 +23,7 @@ Frontend (Next.js / ACA)
 
 Each agent container runs **Microsoft Agent Framework (MAF)** via
 `azure.ai.agentserver.agentframework.from_agent_framework`, exposes an HTTP
-endpoint, and is registered with **Azure AI Foundry** as a Hosted Agent via
+endpoint, and is registered with **Microsoft Foundry** as a Hosted Agent via
 `scripts/register_agents.py`.
 
 ---

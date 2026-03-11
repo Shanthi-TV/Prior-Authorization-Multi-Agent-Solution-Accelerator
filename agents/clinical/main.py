@@ -71,7 +71,7 @@ def main() -> None:
         skill_paths=str(Path(__file__).parent / "skills")
     )
 
-    # --- Agent using Responses API on Azure AI Foundry ---
+    # --- Agent using Responses API on Microsoft Foundry ---
     # default_options enforces ClinicalResult schema on every agent.run() call
     # made by from_agent_framework — token-level JSON constraint, no fence parsing.
     agent = AzureOpenAIResponsesClient(
