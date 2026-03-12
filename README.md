@@ -366,9 +366,14 @@ This solution accelerator is designed to be extended:
 
 This solution accelerator handles **Protected Health Information (PHI)** and clinical data. Security best practices are critical for any deployment.
 
-All API keys and connection strings are stored in a local `.env` file that is excluded from source control via `.gitignore`. For Azure deployments, we recommend using [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview) to manage secrets and [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) to authenticate between Azure resources without storing credentials in code.
+**This project uses keyless authentication throughout — no API keys, passwords, or connection strings are stored anywhere.** All Azure resource access (Microsoft Foundry, Azure Container Registry, Azure Monitor) is authenticated via [`DefaultAzureCredential`](https://learn.microsoft.com/azure/developer/python/sdk/authentication/credential-chains#defaultazurecredential-overview):
 
-To ensure continued best practices in your own repository, we recommend that anyone creating solutions based on our templates ensure that the [GitHub secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) setting is enabled.
+| Environment | Credential used | How it's granted |
+|---|---|---|
+| Azure (production) | System-assigned [Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) on each Container App | Bicep role assignments at deploy time (`CognitiveServicesOpenAIUser`) |
+| Local / Codespaces | Azure Developer CLI token (`azd auth login`) or Azure CLI token (`az login`) | Developer's own authenticated session |
+
+Because there are no API keys, there is nothing to rotate, leak, or accidentally commit. To ensure continued best practices in your own repository, we recommend enabling [GitHub secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) to catch any credentials that might be inadvertently introduced.
 
 You may want to consider additional security measures, such as:
 
