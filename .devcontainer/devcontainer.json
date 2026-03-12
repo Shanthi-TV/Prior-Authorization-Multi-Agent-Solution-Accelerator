@@ -32,7 +32,7 @@
   },
   "forwardPorts": [3000, 8000],
   "postCreateCommand": "bash ./.devcontainer/setupEnv.sh",
-  "postAttachCommand": "echo ''",
+  "postAttachCommand": "bash -c 'if [ -f /tmp/.devcontainer-setup-complete ]; then echo \"\"; echo \"✅  Environment ready!\"; echo \"    Run: azd auth login && az login && azd up\"; echo \"\"; fi'",
   "remoteEnv": {
     "PYTHONUNBUFFERED": "True"
   },
