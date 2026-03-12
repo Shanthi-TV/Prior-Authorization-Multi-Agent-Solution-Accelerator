@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Write sentinel so postAttachCommand can warn users setup is still running
+touch /tmp/.devcontainer-setup-running
+rm -f /tmp/.devcontainer-setup-complete
+
 echo "Pull latest code for the current branch"
 git fetch
 git pull
@@ -36,3 +40,7 @@ npm install
 cd ../
 
 echo "Setup complete! 🎉"
+
+# Mark setup as complete for postAttachCommand banner
+rm -f /tmp/.devcontainer-setup-running
+touch /tmp/.devcontainer-setup-complete
