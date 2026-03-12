@@ -22,6 +22,15 @@ param appInsightsInstrumentationKey string
 @description('Application Insights resource ID — the target resource for the AppInsights connection')
 param appInsightsResourceId string
 
+@description('Name for the model deployment (used in API calls, e.g. gpt-5.4)')
+param deploymentName string = 'gpt-5.4'
+
+@description('Model version to deploy. Leave empty to use the current default version.')
+param modelVersion string = ''
+
+@description('Standard Global capacity in thousands of tokens per minute (default: 100 = 100K TPM)')
+param deploymentCapacityK int = 100
+
 // ── Microsoft Foundry Resource ──────────────────────────────────────────────
 
 resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
@@ -74,8 +83,27 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
     }
   }
 }
-
-// ── Capability Host — required for Foundry Hosted Agents ───────────────────
+// ── gpt-5.4 Model Deployment (Standard Global) ───────────────────────────
+// Standard Global = no region quota allocation; capacity is drawn from
+// Microsoft's global pool. No region restriction is needed for this SKU.
+resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  name: deploymentName
+  parent: foundryAccount
+  sku: {
+    name: 'GlobalStandard'
+    capacity: deploymentCapacityK
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.4'
+      version: modelVersion
+    }
+    versionUpgradeOption: 'OnceCurrentVersionExpired'
+  }
+  dependsOn: [capabilityHost]
+}
+// ── Capability Host — required for Foundry Hosted Agents ─────────────────────
 // Enables Foundry Agent Service to provision and manage ACA containers for
 // hosted agents deployed to this Foundry account. Must be created once per
 // Foundry account with enablePublicHostingEnvironment=true.
@@ -96,6 +124,7 @@ output accountId string = foundryAccount.id
 output projectId string = foundryProject.id
 output endpoint string = foundryAccount.properties.endpoint
 output portalUrl string = 'https://ai.azure.com/manage/project?wsid=${foundryProject.id}'
+output deploymentName string = modelDeployment.name
 
 // Project endpoint: used by the backend orchestrator to invoke Foundry Hosted
 // Agents via the Responses API with agent_reference routing.

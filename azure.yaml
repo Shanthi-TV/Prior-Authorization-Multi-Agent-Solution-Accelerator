@@ -616,11 +616,9 @@ hooks:
         Write-Host "===============================================================" -ForegroundColor Yellow
         Write-Host ""
         Write-Host " Next Steps:" -ForegroundColor White
-        Write-Host "  1. Ensure gpt-5.4 is deployed in your Microsoft Foundry portal" -ForegroundColor White
-        Write-Host "     (Project > Deployments > Deploy model > gpt-5.4)" -ForegroundColor Gray
-        Write-Host "  2. If you used a custom deployment name, update it:" -ForegroundColor White
-        Write-Host "     azd env set AZURE_OPENAI_DEPLOYMENT_NAME <name>" -ForegroundColor Gray
-        Write-Host "     azd up  # redeploy to propagate the new name" -ForegroundColor Gray
+        Write-Host "  1. Open the Frontend URL below in your browser" -ForegroundColor White
+        Write-Host "  2. Click 'Load Sample Case' and then 'Submit for Review'" -ForegroundColor White
+        Write-Host "  Note: gpt-5.4 was automatically deployed by azd (Standard Global)" -ForegroundColor Gray
         Write-Host ""
         $frontendUrl = azd env get-value frontendUrl
         $backendUrl  = azd env get-value backendUrl
@@ -720,11 +718,9 @@ hooks:
         printf "${Green} DEPLOYMENT COMPLETE\n"
         printf "${Yellow}===============================================================${NC}\n\n"
         printf "${White} Next Steps:${NC}\n"
-        printf "  1. Ensure gpt-5.4 is deployed in your Microsoft Foundry portal\n"
-        printf "     (Project > Deployments > Deploy model > gpt-5.4)\n"
-        printf "  2. If you used a custom deployment name, update it:\n"
-        printf "     azd env set AZURE_OPENAI_DEPLOYMENT_NAME <name>\n"
-        printf "     azd up  # redeploy to propagate the new name\n\n"
+        printf "  1. Open the Frontend URL below in your browser\n"
+        printf "  2. Click 'Load Sample Case' and then 'Submit for Review'\n"
+        printf "  Note: gpt-5.4 was automatically deployed by azd (Standard Global)\n\n"
         FRONTEND_URL=$(azd env get-value frontendUrl)
         BACKEND_URL=$(azd env get-value backendUrl)
         printf "${Yellow} Application URLs:${NC}\n"

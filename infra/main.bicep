@@ -94,6 +94,7 @@ module aiFoundry './modules/ai-foundry.bicep' = {
     tags: tags
     appInsightsInstrumentationKey: monitoring.outputs.appInsightsInstrumentationKey
     appInsightsResourceId: monitoring.outputs.appInsightsResourceId
+    deploymentName: azureOpenAIDeploymentName
   }
 }
 
