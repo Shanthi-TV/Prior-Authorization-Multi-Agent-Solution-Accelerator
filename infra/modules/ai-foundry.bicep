@@ -83,10 +83,10 @@ resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/co
     }
   }
 }
-// ── gpt-5.4 Model Deployment (Data Zone Standard) ────────────────────────
-// DataZoneStandard = data residency is bounded to a geographic zone (e.g. US
-// or EU) while capacity is drawn from Microsoft's regional pool — no
-// per-region quota allocation or region restriction required.
+// ── gpt-5.4 Model Deployment (DataZone Standard) ─────────────────────────
+// DataZone Standard = data residency bounded to a geographic zone (US/EU).
+// gpt-5.4 is currently available in East US 2 and Sweden Central only.
+// Region is enforced by the @allowed constraint in main.bicep.
 resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
   name: deploymentName
   parent: foundryAccount
