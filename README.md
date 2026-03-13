@@ -1,66 +1,41 @@
 # Prior Authorization Review — Multi-Agent Solution Accelerator
 
-A **multi-agent** AI-assisted prior authorization (PA) review application built
-with **Azure Container Apps**, **Microsoft Foundry**, the **Microsoft Agent
-Framework (MAF)**, and **DeepSense & Anthropic Healthcare MCP Servers**.
-Agents are powered by **gpt-5.4 on Microsoft Foundry** via `AzureOpenAIResponsesClient`.
-Four specialized agents — Compliance, Clinical Reviewer, Coverage, and
-Synthesis — are each packaged as independent **Foundry Hosted Agents** using
-the native MAF `from_agent_framework` pattern. They work in parallel and
-sequence, coordinated by a FastAPI orchestrator that applies a gate-based
-decision rubric and produces a final recommendation with confidence scoring
-and an audit justification document.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+&nbsp;[![Azure](https://img.shields.io/badge/Azure-Deployable-blue?logo=microsoftazure)](https://azure.microsoft.com)
+&nbsp;[![Agent Framework](https://img.shields.io/badge/Microsoft-Agent%20Framework-purple)](https://learn.microsoft.com/agent-framework/)
+
+A multi-agent AI-assisted prior authorization (PA) review application built with **Microsoft Foundry**, the **Microsoft Agent Framework (MAF)**, **Azure Container Apps**, and **MCP healthcare data servers**. Four specialized agents — Compliance, Clinical Reviewer, Coverage, and Synthesis — are each packaged as independent **Foundry Hosted Agents** using the native MAF `from_agent_framework` pattern. They work in parallel and sequence, coordinated by a FastAPI orchestrator that applies a gate-based decision rubric and produces a final recommendation with confidence scoring and an audit justification document.
 
 The solution supports **two runtime modes**:
 
-- **Local / Docker Compose mode** — all 4 agent containers + backend + frontend run locally via `docker compose up`
-- **Foundry Hosted Agent mode** — agents are registered with Microsoft Foundry Hosted Agents via `scripts/register_agents.py`; Foundry manages the container lifecycle. The backend dispatches through the Foundry project endpoint using `agent_reference` routing and `DefaultAzureCredential` — no per-agent ACA URLs required
+| Mode | How to start | What happens |
+|------|-------------|--------------|
+| **Foundry Hosted Agent** (recommended) | `azd up` | Agents are registered with Microsoft Foundry Hosted Agents; Foundry manages container lifecycle. Backend dispatches through the Foundry project endpoint using `agent_reference` routing and `DefaultAzureCredential`. |
+| **Local / Docker Compose** | `docker compose up` | All 4 agent containers + backend + frontend run locally — no Azure deployment needed. |
 
-Decision policy and evaluation methodology adapted from the
-[Anthropic prior-auth-review-skill](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill):
-LENIENT mode decision policy, per-criterion MET/NOT_MET/INSUFFICIENT evaluation,
-confidence scoring, progressive gate evaluation, structured audit trails, NCCI
-bundling risk flagging, service-type classification, and provider
-specialty-procedure appropriateness as an auditable criterion.
+Decision policy and evaluation methodology adapted from the [Anthropic prior-auth-review-skill](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill): LENIENT mode decision policy, per-criterion MET/NOT_MET/INSUFFICIENT evaluation, confidence scoring, progressive gate evaluation, structured audit trails, NCCI bundling risk flagging, service-type classification, and provider specialty-procedure appropriateness as an auditable criterion.
 
 <div align="center">
 
-[**SOLUTION OVERVIEW**](#solution-overview) \| [**QUICK DEPLOY**](#quick-deploy) \| [**BUSINESS SCENARIO**](#business-scenario) \| [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
+[**SOLUTION OVERVIEW**](#solution-overview) &nbsp;|&nbsp; [**QUICK DEPLOY**](#quick-deploy) &nbsp;|&nbsp; [**BUSINESS SCENARIO**](#business-scenario) &nbsp;|&nbsp; [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
 
 </div>
 
-> **Disclaimer:** This is an AI-assisted triage tool. All recommendations are
-> drafts that require human clinical review before any authorization decision
-> is finalized. Coverage policies reflect Medicare LCDs/NCDs only — commercial
-> and Medicare Advantage plans may differ.
+> [!CAUTION]
+> This is an AI-assisted triage tool. All recommendations are drafts that require human clinical review before any authorization decision is finalized. Coverage policies reflect Medicare LCDs/NCDs only — commercial and Medicare Advantage plans may differ.
 
-> **Solution Accelerator Notice:** This project is a **solution accelerator** —
-> not a production-ready application. It is designed as a reference architecture
-> and working prototype that customers can use as a starting point to build,
-> customize, and extend their own prior authorization solution based on their
-> specific requirements. Microsoft does not provide production support for this
-> accelerator. Customers are responsible for testing, validation, regulatory
-> compliance, and production deployment within their own environment.
+> [!IMPORTANT]
+> This project is a **solution accelerator** — not a production-ready application. It is designed as a reference architecture and working prototype that customers can use as a starting point to build, customize, and extend their own prior authorization solution. Microsoft does not provide production support for this accelerator. Customers are responsible for testing, validation, regulatory compliance, and production deployment within their own environment.
 
-> **Note:** With any AI solutions you create using these templates, you are
-> responsible for assessing all associated risks and for complying with all
-> applicable laws and safety standards. Learn more in the transparency documents
-> for [Agent Service](https://learn.microsoft.com/en-us/azure/ai-foundry/responsible-ai/agents/transparency-note)
-> and [Agent Framework](https://github.com/microsoft/agent-framework/blob/main/TRANSPARENCY_FAQ.md).
+> [!NOTE]
+> With any AI solutions you create using these templates, you are responsible for assessing all associated risks and for complying with all applicable laws and safety standards. Learn more in the transparency documents for [Agent Service](https://learn.microsoft.com/en-us/azure/ai-foundry/responsible-ai/agents/transparency-note) and [Agent Framework](https://github.com/microsoft/agent-framework/blob/main/TRANSPARENCY_FAQ.md).
 
 ---
 
 <a id="solution-overview"></a>
 ## <img src="./docs/images/readme/solution-overview.svg" width="48" /> Solution overview
 
-This solution leverages **Microsoft Foundry**, **Microsoft Agent Framework
-(MAF)**, **Azure Application Insights**, and **DeepSense & Anthropic Healthcare
-MCP Servers** to create an intelligent prior authorization review
-pipeline where four specialized AI agents work together to validate, assess,
-and synthesize PA decisions with full audit transparency and native
-OpenTelemetry tracing. Each specialist agent is independently containerized
-and deployed as a Foundry Hosted Agent, while the FastAPI orchestrator and
-Next.js frontend remain in Azure Container Apps.
+This solution leverages **Microsoft Foundry**, the **Microsoft Agent Framework (MAF)**, **Azure Application Insights**, and **MCP healthcare data servers** to create an intelligent prior authorization review pipeline where four specialized AI agents work together to validate, assess, and synthesize PA decisions with full audit transparency and native OpenTelemetry tracing. Each specialist agent is independently containerized and deployed as a Foundry Hosted Agent, while the FastAPI orchestrator and Next.js frontend run in Azure Container Apps.
 
 ### Project structure
 
@@ -125,11 +100,13 @@ The orchestrator coordinates four phases with four specialized agents:
 
 ### Additional resources
 
-- [Azure OpenAI GPT-5.4 in Microsoft Foundry](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/introducing-gpt-5-4-in-microsoft-foundry/4499785)
-- [Microsoft Agent Framework Documentation](https://learn.microsoft.com/en-us/agent-framework/)
-- [Anthropic Healthcare MCP Marketplace](https://github.com/anthropics/healthcare) (MCP data tools, not the AI model)
-- [Prior Auth Review Skill — methodology reference](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill)
-- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+| Resource | Description |
+|----------|-------------|
+| [Azure OpenAI GPT-5.4 in Microsoft Foundry](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/introducing-gpt-5-4-in-microsoft-foundry/4499785) | GPT-5.4 model announcement and capabilities |
+| [Microsoft Agent Framework Documentation](https://learn.microsoft.com/en-us/agent-framework/) | Official MAF documentation and getting started guides |
+| [Anthropic Healthcare MCP Marketplace](https://github.com/anthropics/healthcare) | MCP healthcare data tools (MCP data tools, not the AI model) |
+| [Prior Auth Review Skill](https://github.com/anthropics/healthcare/tree/main/prior-auth-review-skill) | Original methodology reference for decision policy and evaluation criteria |
+| [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) | MCP specification and tooling |
 
 <br/>
 
@@ -235,15 +212,16 @@ The orchestrator coordinates four phases with four specialized agents:
 
 Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription.
 
-> **Note:** This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher** for Azure deployment. Please ensure you have the latest version installed before proceeding. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
+> [!IMPORTANT]
+> This solution accelerator requires **Azure Developer CLI (azd) version 1.18.0 or higher** for Azure deployment. Please ensure you have the latest version installed before proceeding. [Download azd here](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 
 [Click here to launch the deployment guide](./docs/DeploymentGuide.md)
 
-| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/amitmukh/prior-auth-maf) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/amitmukh/prior-auth-maf) | [![Open in Visual Studio Code Web](https://img.shields.io/static/v1?style=for-the-badge&label=Visual%20Studio%20Code%20(Web)&message=Open&color=blue&logo=visualstudiocode&logoColor=white)](https://vscode.dev/azure/?vscode-azure-exp=foundry&agentPayload=eyJiYXNlVXJsIjogImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9hbWl0bXVraC9wcmlvci1hdXRoLW1hZi9yZWZzL2hlYWRzL21haW4vaW5mcmEvdnNjb2RlX3dlYiIsICJpbmRleFVybCI6ICIvaW5kZXguanNvbiIsICJ2YXJpYWJsZXMiOiB7ImFnZW50SWQiOiAiIiwgImNvbm5lY3Rpb25TdHJpbmciOiAiIiwgInRocmVhZElkIjogIiIsICJ1c2VyTWVzc2FnZSI6ICIiLCAicGxheWdyb3VuZE5hbWUiOiAiIiwgImxvY2F0aW9uIjogIiIsICJzdWJzY3JpcHRpb25JZCI6ICIiLCAicmVzb3VyY2VJZCI6ICIiLCAicHJvamVjdFJlc291cmNlSWQiOiAiIiwgImVuZHBvaW50IjogIiJ9LCAiY29kZVJvdXRlIjogWyJhaS1wcm9qZWN0cy1zZGsiLCAicHl0aG9uIiwgImRlZmF1bHQtYXp1cmUtYXV0aCIsICJlbmRwb2ludCJdfQ==) |
-|---|---|---|
+| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/Prior-Authorization-Multi-Agent-Solution-Accelerator) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/microsoft/Prior-Authorization-Multi-Agent-Solution-Accelerator) |
+|---|---|
 
-> **Which button for which mode?**
-> All three buttons open the same dev environment (devcontainer) with `azd`, Azure CLI, Docker, and Node pre-installed. Once inside, you choose your runtime mode:
+> [!TIP]
+> All buttons open the same dev environment (devcontainer) with `azd`, Azure CLI, Docker, and Node pre-installed. Once inside, you choose your runtime mode:
 >
 > | Goal | Command | Runtime mode |
 > |------|---------|-------------|
@@ -252,14 +230,15 @@ Follow the quick deploy steps on the deployment guide to deploy this solution to
 >
 > The **Quick Deploy** path described below uses `azd up` → Foundry Hosted Agent mode.
 
-> ⚠️ **Important: Check Azure OpenAI Quota Availability**
-> <br/>To ensure the **gpt-5.4** model is available in your target region, please check the [model availability instructions](./docs/DeploymentGuide.md#13-model-access-pre-check) before you deploy the solution.
+> [!WARNING]
+> **Check Azure OpenAI Quota Availability** — To ensure the **gpt-5.4** model is available in your target region, please check the [model availability instructions](./docs/DeploymentGuide.md#13-model-access-pre-check) before you deploy the solution.
 
-### Prerequisites & Costs
+### Prerequisites and costs
 
 To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create resource groups and resources. The **Microsoft Foundry Resource and Project** are automatically provisioned by `azd up`. The solution uses the **Azure OpenAI gpt-5.4** model, which is automatically deployed as part of `azd up` — see [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) for details.
 
-> ⚠️ **Region requirement:** gpt-5.4 (DataZone Standard) is currently available in **East US 2** (`eastus2`) and **Sweden Central** (`swedencentral`) only. Select one of these regions when prompted during `azd up`. See [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) for the latest availability.
+> [!WARNING]
+> **Region requirement:** gpt-5.4 (DataZone Standard) is currently available in **East US 2** (`eastus2`) and **Sweden Central** (`swedencentral`) only. Select one of these regions when prompted during `azd up`. See [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) for the latest availability.
 
 Pricing varies per region and usage, so it isn't possible to predict exact costs for your usage. The majority of the Azure resources used in this infrastructure are on usage-based pricing tiers. Use the [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator) to estimate costs for your subscription.
 
@@ -270,7 +249,8 @@ Pricing varies per region and usage, so it isn't possible to predict exact costs
 | [Azure Container Registry](https://azure.microsoft.com/en-us/pricing/details/container-registry/) | Docker image storage | [Pricing](https://azure.microsoft.com/en-us/pricing/details/container-registry/) |
 | [Azure Application Insights](https://azure.microsoft.com/en-us/pricing/details/monitor/) | Observability and tracing (optional) | [Pricing](https://azure.microsoft.com/en-us/pricing/details/monitor/) |
 
-> ⚠️ **Important:** To avoid unnecessary costs, remember to take down your deployment if it's no longer in use, either by running `azd down`, deleting the resource group in the Portal, or running `docker compose down` for local deployments.
+> [!IMPORTANT]
+> To avoid unnecessary costs, remember to take down your deployment if it's no longer in use, either by running `azd down`, deleting the resource group in the Portal, or running `docker compose down` for local deployments.
 
 ---
 
@@ -394,7 +374,7 @@ Check out related solution accelerators from Microsoft
 
 <br/>
 
-💡 Want to get familiar with Microsoft's AI and Data Engineering best practices? Check out our playbooks to learn more
+Want to get familiar with Microsoft's AI and Data Engineering best practices? Check out our playbooks to learn more:
 
 | Playbook | Description |
 |:---|:---|
@@ -405,7 +385,7 @@ Check out related solution accelerators from Microsoft
 
 ## Provide feedback
 
-Have questions, find a bug, or want to request a feature? [Submit a new issue](https://github.com/amitmukh/prior-auth-maf/issues) on this repo and we'll connect.
+Have questions, find a bug, or want to request a feature? [Submit a new issue](https://github.com/microsoft/Prior-Authorization-Multi-Agent-Solution-Accelerator/issues) on this repo and we'll connect.
 
 <br/>
 
