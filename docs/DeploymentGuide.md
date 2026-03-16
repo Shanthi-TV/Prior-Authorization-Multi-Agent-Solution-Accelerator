@@ -27,7 +27,10 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 > |-------------------|--------|--------|---------|-------------|
 > | Cognitive Services OpenAI User | Backend Container App managed identity | Foundry account | `role-assignments.bicep` | Lets the FastAPI orchestrator call the Foundry Responses API |
 > | AcrPull | Foundry project managed identity | Container Registry | `role-assignments.bicep` | Lets Foundry pull the 4 agent images when provisioning Hosted Agents |
+> | Cognitive Services OpenAI Contributor | Foundry project managed identity | Foundry account | `role-assignments.bicep` | Lets hosted agent containers call gpt-5.4 via the Responses API |
+> | Azure AI User | Foundry project managed identity | Foundry account | `role-assignments.bicep` | Lets hosted agent containers use Foundry Agent Service data actions |
 > | Azure AI User | Deployer (you, running `azd up`) | Foundry project | postprovision hook (`az role assignment create`) | Lets `register_agents.py` register agents via the Foundry Agent Service API |
+> | Azure AI User | Backend Container App managed identity | Foundry project | postprovision hook (`az role assignment create`) | Lets the backend call Foundry Hosted Agents at runtime |
 
 **🔍 How to Check Your Permissions:**
 
@@ -60,7 +63,7 @@ Ensure you have access to an [Azure subscription](https://azure.microsoft.com/fr
 
 ### 1.3 GPT-5.4 Model Availability
 
-> **Note:** You do **not** need to create a Foundry project or deploy the gpt-5.4 model before running `azd up`. Everything — Foundry resource, project, model deployment (DataZone Standard, 100K TPM), all 4 hosted agents, and the full application stack — is provisioned and registered automatically.
+> **Note:** You do **not** need to create a Foundry project or deploy the gpt-5.4 model before running `azd up`. Everything — Foundry resource, project, model deployment (GlobalStandard or DataZoneStandard, 100K TPM), all 4 hosted agents, and the full application stack — is provisioned and registered automatically.
 
 ---
 
@@ -307,7 +310,7 @@ azd up
 
 **What gets deployed (fully automated):**
 - **Microsoft Foundry Resource + Project**
-- **gpt-5.4 model deployment** (DataZone Standard, 100K TPM) — no manual portal step
+- **gpt-5.4 model deployment** (GlobalStandard or DataZoneStandard, 100K TPM) — no manual portal step
 - **4 Foundry Hosted Agents** registered automatically (clinical, compliance, coverage, synthesis)
 - Azure Container Registry (used for remote image builds — no local Docker required)
 - Azure Container Apps Environment
@@ -328,7 +331,7 @@ azd up
 | What | How | Status after `azd up` |
 |---|---|---|
 | Foundry Resource + Project | Bicep | ✅ Provisioned |
-| gpt-5.4 model (DataZone Standard, 100K TPM) | Bicep | ✅ Deployed |
+| gpt-5.4 model (GlobalStandard or DataZoneStandard, 100K TPM) | Bicep | ✅ Deployed |
 | Container images (backend + 4 agents + frontend) | ACR remote build | ✅ Built & pushed |
 | Container Apps | Bicep | ✅ Running |
 | Foundry Hosted Agents registered | `scripts/register_agents.py` postprovision hook | ✅ Registered |

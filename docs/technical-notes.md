@@ -91,12 +91,12 @@ agent = (
 
 MAF enforces the schema as a token-level JSON constraint at inference time —
 no post-processing or regex extraction needed. The backend dispatcher reads
-the text payload from the Foundry Responses API envelope:
+the text payload from the OpenAI SDK response:
 
 ```python
 # hosted_agents.py
-result_text = data["output"][0]["content"][0]["text"]
-return json.loads(result_text)
+output_text = response.output_text
+return json.loads(output_text)
 ```
 
 The Pydantic models live in each agent container:

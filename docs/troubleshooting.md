@@ -14,7 +14,7 @@ The backend logs show an auth error when trying to invoke a hosted agent.
    az account set --subscription <your-subscription-id>
    ```
 
-2. **Azure (production):** Verify the backend Container App's managed identity has the `CognitiveServicesOpenAIUser` role on the Foundry account:
+2. **Azure (production):** Verify the backend Container App's managed identity has the `CognitiveServicesOpenAIUser` role on the Foundry account, and the Foundry project's managed identity has `Cognitive Services OpenAI Contributor` and `Azure AI User` roles on the Foundry account:
    - Check `infra/modules/role-assignments.bicep`
    - Re-run `azd provision` to reapply role assignments if missing
 
@@ -124,6 +124,7 @@ agent deployment.
 **Foundry Hosted Agents (production):** Credentials come from `DefaultAzureCredential`. Common causes:
 
 - The backend ACA managed identity is missing the `CognitiveServicesOpenAIUser` role on the Foundry account — check `infra/modules/role-assignments.bicep` and re-run `azd provision`
+- The Foundry project managed identity is missing `Cognitive Services OpenAI Contributor` or `Azure AI User` on the Foundry account — these roles are required for hosted agent containers to call gpt-5.4 and use Agent Service data actions
 - The deployer user is missing the `Azure AI User` role on the Foundry project (required by `scripts/register_agents.py` to register agents) — this role is auto-assigned by `az role assignment create` in the postprovision hook; re-run `azd up` to fix
 - `AZURE_AI_PROJECT_ENDPOINT` is pointing to the wrong project or account
 - The agents were not successfully registered — check `scripts/register_agents.py` output in the postprovision hook logs
