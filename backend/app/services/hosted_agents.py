@@ -191,25 +191,22 @@ async def _invoke_foundry_agent(
             },
         )
 
-        # Convert SDK response to dict for _extract_result
-        data = {
-            "status": response.status,
-            "output": [],
-        }
-        for item in response.output:
-            if hasattr(item, "content"):
-                content_blocks = []
-                for block in item.content:
-                    if hasattr(block, "text"):
-                        content_blocks.append({"type": "text", "text": block.text})
-                data["output"].append({"type": "message", "content": content_blocks})
-
+        # Use output_text for reliable text extraction, then parse as JSON
+        output_text = response.output_text
         logger.info(
             "Foundry Hosted Agent %s (%s) response status=%s",
             agent_name, foundry_agent_name, response.status,
         )
-        result = _extract_result(data)
-        if result.get("error"):
+
+        if not output_text:
+            return {"error": f"Agent {agent_name} returned empty output", "tool_results": []}
+
+        try:
+            result = json.loads(output_text)
+        except (json.JSONDecodeError, TypeError):
+            result = {"error": f"Agent text was not valid JSON: {output_text[:200]}"}
+
+        if isinstance(result, dict) and result.get("error"):
             logger.warning(
                 "Foundry Hosted Agent %s (%s) extraction error: %s",
                 agent_name, foundry_agent_name, result["error"],
