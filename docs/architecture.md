@@ -139,10 +139,14 @@ prior-auth-maf/
 
 ---
 
-## MCP Integration — Foundry-Managed Tool Connections
+## MCP Integration — Hybrid Approach
 
-MCP tools are managed by **Foundry Agent Service** as project-level tool connections.
-The backend and agent containers have **no MCP wiring** — MCP is entirely owned by Foundry.
+MCP tools use a **hybrid wiring** strategy for maximum reliability:
+
+1. **In-container wiring** — each agent container creates `MCPStreamableHTTPTool` instances with a shared `httpx.AsyncClient` (including the `User-Agent: claude-code/1.0` header required by DeepSense CloudFront). Tools are passed via `tools=[...]` to `.as_agent()` so the agent can call them directly during inference.
+2. **Foundry project connections** — `scripts/register_agents.py` also registers `MCPTool` references as Foundry project-level tool connections via the ARM REST API, enabling Foundry portal visibility and proxy routing.
+
+This dual approach ensures agents work in both Docker Compose (direct HTTP) and Foundry Hosted Agent (managed proxy) modes without configuration changes.
 
 ### How MCP Tools Are Provisioned
 
@@ -150,7 +154,9 @@ During `azd up`, the `scripts/register_agents.py` script:
 
 1. **Creates project connections** via the ARM REST API (idempotent PUT) for each MCP server
 2. **Registers agents** with `MCPTool` references linking to those connections
-3. Foundry Agent Service proxies all MCP calls through its managed infrastructure
+3. Foundry Agent Service proxies MCP calls through its managed infrastructure
+
+At container startup, each agent's `main.py` also creates local `MCPStreamableHTTPTool` instances that connect directly to MCP servers — this is the primary tool execution path.
 
 ```python
 # scripts/register_agents.py (simplified)
@@ -181,7 +187,8 @@ agent = client.agents.create_version(
 | PubMed | Anthropic | Unauthenticated | None |
 
 Authentication headers are stored in Foundry project connections (Key-based auth)
-and injected by Foundry's proxy — agent containers do not handle MCP auth.
+for portal visibility. Agent containers also handle MCP auth directly via
+a shared `httpx.AsyncClient` with the required `User-Agent` header.
 
 MCP tools are visible in the Foundry portal under **Build → Tools**.
 
@@ -199,7 +206,7 @@ Each agent's execution is fully transparent in the frontend with Checks Summary 
 | **Tools** | None (pure reasoning) |
 | **`max_turns`** | 5 |
 | **Input** | Raw PA request data |
-| **Output** | Checklist (8 items), missing items, additional-info requests |
+| **Output** | Checklist (10 items), missing items, additional-info requests |
 
 **SKILL.md rules (always shown in Checks Summary):**
 
@@ -357,9 +364,11 @@ This project consumes **remote MCP servers** from the
 ```
 agents/<name>/main.py     — MCPStreamableHTTPTool instantiation + shared httpx client
     ↓ passed via
-.as_agent(tools=[...])    — MAF wires tools into the agent
+.as_agent(tools=[...])    — MAF wires tools into the agent (primary execution path)
     ↓ hosted by
 from_agent_framework(agent).run()   — Exposes POST /responses; agent calls tools during inference
+
+scripts/register_agents.py — MCPTool references registered with Foundry (portal visibility + proxy)
 ```
 
 ---

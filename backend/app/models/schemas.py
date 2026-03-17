@@ -48,6 +48,7 @@ class DiagnosisValidation(BaseModel):
     valid: bool = False
     description: str = ""
     billable: bool = False
+    hierarchy_note: str = ""  # only when non-billable code has specific children
 
 
 class ClinicalExtraction(BaseModel):
@@ -59,6 +60,13 @@ class ClinicalExtraction(BaseModel):
     diagnostic_findings: list[str] = []
     duration_and_progression: str = ""
     extraction_confidence: int = 0  # 0-100 overall extraction confidence
+
+
+class ProcedureValidation(BaseModel):
+    code: str = ""
+    valid: bool = False
+    description: str = ""
+    source: str = ""  # "orchestrator_preflight" or "unverified"
 
 
 class LiteratureReference(BaseModel):
@@ -78,6 +86,7 @@ class ClinicalResult(BaseModel):
     agent_name: str = "Clinical Reviewer Agent"
     checks_performed: list[AgentCheck] = []
     diagnosis_validation: list[DiagnosisValidation] = []
+    procedure_validation: list[ProcedureValidation] = []
     clinical_extraction: ClinicalExtraction | None = None
     literature_support: list[LiteratureReference] = []
     clinical_trials: list[ClinicalTrialReference] = []

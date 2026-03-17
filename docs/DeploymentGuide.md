@@ -204,7 +204,7 @@ AZURE_AI_PROJECT_ENDPOINT=https://<resource-name>.services.ai.azure.com
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-5.4
 ```
 
-> **MCP tools:** MCP server connections (ICD-10, PubMed, ClinicalTrials, NPI, CMS Coverage) are managed by Foundry Agent Service as project-level tool connections. They are created automatically by `scripts/register_agents.py` during `azd up` and visible in the Foundry portal under **Build → Tools**. No MCP environment variables are needed.
+> **MCP tools:** MCP tools use a hybrid approach. Each agent container wires `MCPStreamableHTTPTool` instances for direct tool execution (configured via `MCP_*` env vars in `agent.yaml` / `docker-compose.yml`). Additionally, `scripts/register_agents.py` registers Foundry project-level `MCPTool` connections during `azd up` for portal visibility under **Build → Tools**.
 
 > **Authentication note:** MAF agents use `DefaultAzureCredential` (managed identity on Azure, Azure CLI locally) — no API key required. For local Docker Compose, ensure your local Azure CLI session is active (`az login`) or set `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` if running without CLI auth.
 

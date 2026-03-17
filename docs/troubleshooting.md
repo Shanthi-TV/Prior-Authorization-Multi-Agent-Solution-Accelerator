@@ -191,7 +191,7 @@ WARNING app.agents.orchestrator: Clinical Reviewer Agent returned incomplete res
 INFO app.agents.orchestrator: Clinical Reviewer Agent succeeded on retry (attempt 2/2)
 ```
 
-A normal Clinical result has 4 expected top-level keys (`diagnosis_validation`, `clinical_extraction`, `clinical_summary`, `tool_results`).
+A normal Clinical result has 3 expected top-level keys (`diagnosis_validation`, `clinical_extraction`, `clinical_summary`). Additional fields like `procedure_validation`, `tool_results`, and `clinical_trials` are also present but not checked by the validation gate.
 
 **Mitigations (in place):**
 

@@ -30,17 +30,18 @@ endpoint, and is registered with **Microsoft Foundry** as a Hosted Agent via
 
 ## MCP Tool Connections
 
-MCP tools are managed by **Foundry Agent Service** as project-level tool connections,
-created automatically by `scripts/register_agents.py` via the ARM REST API during `azd up`.
+MCP tools use a **hybrid wiring** strategy:
 
-The DeepSense-hosted MCP servers require `User-Agent: claude-code/1.0` due to CloudFront
-routing rules. This header is stored in the Foundry project connection (Key-based auth)
-and injected by Foundry's managed proxy. PubMed uses unauthenticated access.
+1. **In-container wiring** — each agent's `main.py` creates `MCPStreamableHTTPTool`
+   instances with a shared `httpx.AsyncClient` (including `User-Agent: claude-code/1.0`
+   for DeepSense CloudFront routing). Tools are passed via `tools=[...]` to `.as_agent()`
+   and called directly during inference.
+2. **Foundry project connections** — `scripts/register_agents.py` also registers `MCPTool`
+   references as Foundry project-level tool connections for portal visibility and proxy
+   routing.
 
-Agent containers do not wire MCP connections directly — they set `tools=[]` and Foundry
-injects the MCP tools at runtime based on the `MCPTool` definitions in the agent registration.
-
-All 5 MCP tools are visible in the Foundry portal under **Build → Tools**.
+This dual approach ensures agents work in both Docker Compose (direct HTTP) and
+Foundry Hosted Agent (managed proxy) modes.
 
 ---
 

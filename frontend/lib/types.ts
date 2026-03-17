@@ -43,6 +43,14 @@ export interface DiagnosisValidation {
   valid: boolean;
   description: string;
   billable: boolean;
+  hierarchy_note: string; // only when non-billable code has specific children
+}
+
+export interface ProcedureValidation {
+  code: string;
+  valid: boolean;
+  description: string;
+  source: string; // "orchestrator_preflight" or "unverified"
 }
 
 export interface ClinicalExtraction {
@@ -73,6 +81,7 @@ export interface ClinicalResult {
   agent_name: string;
   checks_performed: AgentCheck[];
   diagnosis_validation: DiagnosisValidation[];
+  procedure_validation: ProcedureValidation[];
   clinical_extraction?: ClinicalExtraction;
   literature_support: LiteratureReference[];
   clinical_trials: ClinicalTrialReference[];

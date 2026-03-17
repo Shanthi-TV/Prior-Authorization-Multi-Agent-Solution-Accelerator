@@ -495,7 +495,7 @@ def _adapt_coverage_output(data: dict) -> dict:
 def _generate_compliance_checks(raw: dict) -> list[dict]:
     """Generate checks summary from raw compliance agent data.
 
-    Always enumerates ALL 8 rules from the Compliance SKILL.md,
+    Always enumerates ALL 10 rules from the Compliance SKILL.md,
     filling in status from raw agent data when available.
     """
     # Build a lookup from agent checklist items by normalized name
@@ -585,6 +585,20 @@ def _generate_compliance_checks(raw: dict) -> list[dict]:
         r = "info"  # Non-blocking per SKILL.md
     checks.append({"rule": "Insurance Plan Type (non-blocking)", "result": r, "detail": d or "Medicare/Medicaid/Commercial/MA identification"})
 
+    # SKILL.md Rule 9: NCCI Edit Awareness (non-blocking)
+    item = _find_item("NCCI", "bundling", "edit awareness", "coding initiative")
+    r, d = _item_result(item)
+    if r == "fail":
+        r = "info"  # Non-blocking per SKILL.md
+    checks.append({"rule": "NCCI Edit Awareness (non-blocking)", "result": r, "detail": d or "Multi-CPT bundling risk flagging"})
+
+    # SKILL.md Rule 10: Service Type (non-blocking)
+    item = _find_item("service type", "service classification", "procedure type", "category")
+    r, d = _item_result(item)
+    if r == "fail":
+        r = "info"  # Non-blocking per SKILL.md
+    checks.append({"rule": "Service Type (non-blocking)", "result": r, "detail": d or "Procedure/Medication/Imaging/Device/Therapy/Facility classification"})
+
     return checks
 
 
@@ -638,7 +652,7 @@ def _generate_clinical_checks(raw: dict) -> list[dict]:
     # ── SKILL.md Step 2: CPT/HCPCS Procedure Code Notation ──
     proc_val = raw.get("procedure_validation", [])
     if isinstance(proc_val, list) and proc_val:
-        passed = sum(1 for p in proc_val if isinstance(p, dict) and str(p.get("status", "")).lower() in ("pass", "valid", "verified"))
+        passed = sum(1 for p in proc_val if isinstance(p, dict) and (p.get("valid", False) or str(p.get("source", "")).lower() in ("orchestrator_preflight",)))
         total = len([p for p in proc_val if isinstance(p, dict)])
         checks.append({
             "rule": "Step 2: CPT/HCPCS Procedure Code Notation",

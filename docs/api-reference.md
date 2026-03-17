@@ -47,12 +47,16 @@ useful for programmatic/API integrations that don't need progress updates.
       "missing_items": []
     },
     "clinical": {
-      "diagnosis_validation": [{"code": "M17.11", "valid": true, "billable": true}],
+      "diagnosis_validation": [{"code": "M17.11", "valid": true, "billable": true, "hierarchy_note": ""}],
+      "procedure_validation": [{"code": "27447", "valid": true, "source": "orchestrator_preflight"}],
       "clinical_extraction": {
         "chief_complaint": "...",
         "extraction_confidence": 82
       },
-      "literature_support": [...]
+      "literature_support": [...],
+      "clinical_trials": [...],
+      "clinical_summary": "...",
+      "tool_results": [...]
     },
     "coverage": {
       "provider_verification": {"npi": "...", "status": "active"},

@@ -104,8 +104,8 @@ The orchestrator coordinates four phases with four specialized agents:
   <summary><b>MCP-powered data access</b></summary>
 
   - Five remote MCP servers: NPI Registry, ICD-10 Codes, CMS Coverage, Clinical Trials (DeepSense), PubMed (Anthropic Healthcare MCP)
-  - MCP tools managed by Foundry Agent Service as project-level tool connections — registered automatically by `scripts/register_agents.py` during `azd up`
-  - DeepSense servers use Key-based auth with `User-Agent: claude-code/1.0` header; PubMed uses unauthenticated access
+  - **Hybrid MCP wiring**: each agent container creates `MCPStreamableHTTPTool` instances for direct tool execution, and `scripts/register_agents.py` also registers Foundry project-level `MCPTool` connections for portal visibility and proxy routing
+  - DeepSense servers use Key-based auth with `User-Agent: claude-code/1.0` header (handled by a shared `httpx.AsyncClient` in each agent container); PubMed uses unauthenticated access
   - All agents use `AzureOpenAIResponsesClient` with gpt-5.4 on Microsoft Foundry
   - MCP tools visible in Foundry portal under **Build → Tools**
 </details>

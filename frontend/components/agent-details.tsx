@@ -291,6 +291,7 @@ function ClinicalTab({ data: raw }: { data: ClinicalResult }) {
     ...raw,
     checks_performed: raw.checks_performed ?? [],
     diagnosis_validation: raw.diagnosis_validation ?? [],
+    procedure_validation: raw.procedure_validation ?? [],
     literature_support: raw.literature_support ?? [],
     clinical_trials: raw.clinical_trials ?? [],
     tool_results: raw.tool_results ?? [],
@@ -341,6 +342,7 @@ function ClinicalTab({ data: raw }: { data: ClinicalResult }) {
                   <TableHead>Description</TableHead>
                   <TableHead className="w-20">Valid</TableHead>
                   <TableHead className="w-24">Billable</TableHead>
+                  <TableHead>Hierarchy Note</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -356,6 +358,9 @@ function ClinicalTab({ data: raw }: { data: ClinicalResult }) {
                     <TableCell>
                       {statusBadge(d.billable ? "pass" : "fail")}
                     </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {d.hierarchy_note || "—"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -364,6 +369,48 @@ function ClinicalTab({ data: raw }: { data: ClinicalResult }) {
         ) : (
           <p className="text-sm text-muted-foreground">
             No diagnosis validation data available.
+          </p>
+        )}
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title={`Procedure Validation (${data.procedure_validation.length} codes)`}
+        icon={FileCheck}
+        hasData={data.procedure_validation.length > 0}
+        defaultOpen={data.procedure_validation.length > 0}
+      >
+        {data.procedure_validation.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-24">Code</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="w-20">Valid</TableHead>
+                  <TableHead className="w-32">Source</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.procedure_validation.map((p, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-mono text-sm">
+                      {p.code}
+                    </TableCell>
+                    <TableCell>{p.description}</TableCell>
+                    <TableCell>
+                      {statusBadge(p.valid ? "pass" : "warning")}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {p.source}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No procedure validation data available.
           </p>
         )}
       </CollapsibleSection>

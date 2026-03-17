@@ -893,7 +893,3 @@ def _safe(value) -> str:
     s = s.replace("\u2026", "...")  # ellipsis
     s = s.encode("latin-1", errors="replace").decode("latin-1")
     return s
-
-
-# Keep backward compatibility alias
-_safe_latin1 = _safe

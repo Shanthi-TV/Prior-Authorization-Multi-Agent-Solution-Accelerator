@@ -1,6 +1,6 @@
 ---
 name: compliance-review
-description: Validates documentation completeness for prior authorization requests by checking an 8-item checklist covering patient information, provider credentials, insurance details, medical codes, and clinical notes quality.
+description: Validates documentation completeness for prior authorization requests by checking a 10-item checklist covering patient information, provider credentials, insurance details, medical codes, clinical notes quality, NCCI bundling risk, and service type classification.
 ---
 
 # Compliance Review Skill
@@ -68,7 +68,9 @@ Return JSON with this exact structure:
         {"item": "Procedure Codes", "status": "complete|incomplete|missing", "detail": "..."},
         {"item": "Clinical Notes Presence", "status": "complete|incomplete|missing", "detail": "..."},
         {"item": "Clinical Notes Quality", "status": "complete|incomplete|missing", "detail": "..."},
-        {"item": "Insurance Plan Type", "status": "complete|incomplete|missing", "detail": "..."}
+        {"item": "Insurance Plan Type", "status": "complete|incomplete|missing", "detail": "..."},
+        {"item": "NCCI Edit Awareness", "status": "complete|incomplete|missing", "detail": "..."},
+        {"item": "Service Type", "status": "complete|incomplete|missing", "detail": "..."}
     ],
     "overall_status": "complete|incomplete",
     "missing_items": ["list of items that are missing or incomplete"],
@@ -111,15 +113,15 @@ Return JSON with this exact structure:
 </output_contract>
 
 <completeness_contract>
-- Treat the task as incomplete until all 8 checklist items are evaluated with a valid status.
-- Keep an internal checklist of the 8 required items and confirm each is processed before finalizing.
+- Treat the task as incomplete until all 10 checklist items are evaluated with a valid status.
+- Keep an internal checklist of the 10 required items and confirm each is processed before finalizing.
 - Do not finalize until overall_status and additional_info_requests are populated.
 - If any item is blocked by ambiguous data, mark it with the appropriate status and explain in detail.
 </completeness_contract>
 
 <verification_loop>
 Before finalizing output:
-- Check correctness: are all 8 checklist items present with valid status values (complete/incomplete/missing)?
+- Check correctness: are all 10 checklist items present with valid status values (complete/incomplete/missing)?
 - Check grounding: is each status determination based only on the submitted request data — no assumptions about data not present in the prompt?
 - Check formatting: does the output exactly match the JSON schema with all required keys?
 - Check overall_status: does it correctly apply the blocking-item rules (items 1, 2, 4, 5, 6, 7)?

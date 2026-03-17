@@ -7,15 +7,16 @@
 name: compliance-agent
 description: >
   Validates documentation completeness for prior authorization requests
-  using an 8-item checklist covering patient information, provider NPI,
-  insurance details, medical codes, and clinical notes quality.
+  using a 10-item checklist covering patient information, provider NPI,
+  insurance details, medical codes, clinical notes quality, NCCI bundling
+  risk, and service type classification.
   Uses no external tools — pure LLM reasoning.
 runtime: agent-framework
 version: "1.0.0"
 
 resources:
-  cpu: "2"
-  memory: "4Gi"
+  cpu: "0.5"
+  memory: "1Gi"
 
 env:
   # Microsoft Foundry project endpoint (injected by Foundry at deploy time)

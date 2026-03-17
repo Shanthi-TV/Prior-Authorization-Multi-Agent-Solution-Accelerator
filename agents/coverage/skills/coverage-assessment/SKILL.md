@@ -104,10 +104,10 @@ which Medicare Administrative Contractors' LCDs apply.
 
 #### Step 3: Search Coverage Policies
 
-1. Call `mcp__cms-coverage__search_national_coverage(keyword=..., limit=10)`
+1. Call `mcp__cms-coverage__search_national_coverage(keyword=..., document_type="NCD", limit=10)`
    with the procedure description and relevant diagnosis terms.
-2. Call `mcp__cms-coverage__search_local_coverage(keyword=..., limit=10)`
-   for regional policies.
+2. Call `mcp__cms-coverage__search_local_coverage(keyword=..., document_type="LCD", limit=10)`
+   for regional LCD policies.
 3. Optionally call `mcp__cms-coverage__get_whats_new_report(days_back=30)`
    to check if any found policies were recently updated.
 
@@ -119,7 +119,8 @@ payer-specific policies may differ."
 #### Step 4: Get Policy Details
 
 For each relevant NCD/LCD found:
-- Call `mcp__cms-coverage__get_coverage_document(document_id=..., document_type=...)`
+- Call `mcp__cms-coverage__get_coverage_document(document_id=..., document_type="LCD")` for LCDs
+  or `mcp__cms-coverage__get_coverage_document(document_id=..., document_type="NCD")` for NCDs
 - Use `mcp__cms-coverage__batch_get_ncds(ncd_ids=[...])` if multiple NCDs apply
 - Extract coverage criteria, covered indications, documentation requirements,
   and exclusions
