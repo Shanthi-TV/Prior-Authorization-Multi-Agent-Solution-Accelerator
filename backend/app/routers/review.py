@@ -775,10 +775,11 @@ def _generate_clinical_checks(raw: dict) -> list[dict]:
     # Tool Results audit trail
     tools = raw.get("tool_results", [])
     if isinstance(tools, list) and tools:
-        pass_count = sum(1 for t in tools if isinstance(t, dict) and t.get("status") == "pass")
+        pass_count = sum(1 for t in tools if isinstance(t, dict) and t.get("status") in ("pass", "info"))
+        fail_count = sum(1 for t in tools if isinstance(t, dict) and t.get("status") == "fail")
         checks.append({
             "rule": "MCP Tool Executions",
-            "result": "pass" if pass_count == len(tools) else "warning",
+            "result": "pass" if fail_count == 0 else "warning",
             "detail": f"{pass_count}/{len(tools)} tools passed",
         })
 
@@ -1048,10 +1049,11 @@ def _generate_coverage_checks(raw: dict) -> list[dict]:
     # Tool Results audit trail
     tools = raw.get("tool_results", [])
     if isinstance(tools, list) and tools:
-        pass_count = sum(1 for t in tools if isinstance(t, dict) and t.get("status") == "pass")
+        pass_count = sum(1 for t in tools if isinstance(t, dict) and t.get("status") in ("pass", "info"))
+        fail_count = sum(1 for t in tools if isinstance(t, dict) and t.get("status") == "fail")
         checks.append({
             "rule": "MCP Tool Executions",
-            "result": "pass" if pass_count == len(tools) else "warning",
+            "result": "pass" if fail_count == 0 else "warning",
             "detail": f"{pass_count}/{len(tools)} tools passed",
         })
 

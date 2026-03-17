@@ -107,7 +107,8 @@ which Medicare Administrative Contractors' LCDs apply.
 Use a **multi-pass search strategy** to maximize the chance of finding the
 correct policy. A single keyword often returns irrelevant results (e.g.,
 searching "bronchoscopy" may return molecular biomarker LCDs instead of
-the procedure LCD).
+the procedure LCD). **Limit to 3 search passes maximum** — do not keep
+searching indefinitely.
 
 **Search pass 1 — CPT/HCPCS code as keyword:**
 1. Call `mcp__cms-coverage__search_local_coverage(keyword="<CPT code>", document_type="LCD", limit=10)`
@@ -123,6 +124,20 @@ the procedure LCD).
 5. Try a broader category keyword (e.g., "diagnostic bronchoscopy" instead of
    "transbronchial lung biopsy", or "knee arthroplasty" instead of "total knee
    replacement"). Also try the primary diagnosis description as a keyword.
+
+**STOP after 3 passes.** If no relevant policy is found after 3 search passes,
+accept that no directly applicable Medicare LCD/NCD exists for this procedure.
+Record this in `coverage_limitations` and create a documentation gap. Do NOT
+continue searching with more keyword variations — this wastes tool calls
+without improving results.
+
+**tool_results status for search calls:**
+- `"pass"` — search returned relevant results
+- `"info"` — search succeeded but returned no relevant results (expected for
+  some procedures; not an error)
+- `"warning"` — search returned results that are all irrelevant to the
+  requested procedure (e.g., MolDX LCDs when searching for a procedure)
+- `"fail"` — search call itself failed (MCP error, timeout, etc.)
 
 **Relevance filtering:** After collecting results from all passes, evaluate each
 returned policy for relevance to the ACTUAL procedure and diagnosis:
