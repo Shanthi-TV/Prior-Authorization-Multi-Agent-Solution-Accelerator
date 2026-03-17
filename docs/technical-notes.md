@@ -191,6 +191,17 @@ MAF's built-in OTel instrumentation. The backend's `observability.py` does
 **not** call `enable_instrumentation()` — that function is MAF-specific and
 only valid in agent processes.
 
+Agent containers also pass two MAF-specific arguments to `configure_azure_monitor()`
+per the official Foundry tracing sample (`agent_with_foundry_tracing.py`):
+
+- `resource=create_resource()` — Creates an OpenTelemetry `Resource` with
+  MAF-specific attributes (`service.name`, `service.version`). **Required for
+  the Foundry portal Traces tab** to correlate spans to registered agents.
+- `views=create_metric_views()` — Registers MAF histogram views for token
+  usage and agent duration metrics.
+- `enable_performance_counters=False` — Disabled because container environments
+  (Foundry Hosted Agents) don't support performance counter collection.
+
 ### Application Map
 
 Because `OTEL_SERVICE_NAME` is set in every process, App Insights

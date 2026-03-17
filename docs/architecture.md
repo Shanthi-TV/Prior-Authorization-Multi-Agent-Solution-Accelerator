@@ -310,11 +310,19 @@ Evaluated in gate order. Stops at first failing gate:
 | All required criteria MET | APPROVE |
 | Any criterion NOT_MET | PEND — request additional documentation |
 | Any criterion INSUFFICIENT | PEND — specify what documentation is needed |
-| No coverage policy found | PEND — manual policy review needed |
+| No coverage policy found, strong clinical evidence | APPROVE — under general medical necessity §1862(a)(1)(A) |
+| No coverage policy found, weak clinical evidence | PEND — request additional clinical justification |
 | Documentation incomplete | PEND — specify missing items |
 | Uncertain or conflicting signals | PEND — default safe option |
 
 The system **never recommends DENY** — only APPROVE or PEND FOR REVIEW.
+
+> **Note:** Most Medicare procedures (~80%+) have no specific LCD/NCD. When no
+> coverage policy exists, Gate 3 uses a **medical necessity fallback** (Path B)
+> that evaluates clinical evidence directly — documented progression, failed
+> conservative treatment, objective findings, and provider specialty alignment.
+> This mirrors real-world PA workflows where coverage falls under Medicare's
+> general "reasonable and necessary" standard.
 
 ---
 
@@ -326,8 +334,18 @@ The system **never recommends DENY** — only APPROVE or PEND FOR REVIEW.
 | **MEDIUM** | 0.50 - 0.79 | Most criteria MET but some with moderate evidence |
 | **LOW** | 0.0 - 0.49 | Significant gaps, INSUFFICIENT criteria, or agent errors |
 
-Computed from: per-criterion confidence (Coverage Agent), extraction confidence
-(Clinical Agent), compliance completeness, and agent error penalties.
+Computed from a weighted formula:
+
+```
+overall = (0.4 × avg_criteria / 100) + (0.3 × extraction / 100)
+        + (0.2 × compliance_score) + (0.1 × policy_match)
+```
+
+Where `policy_match` uses a 4-tier scale: 1.0 (policy found + aligned),
+0.75 (no policy but medical necessity passes), 0.5 (policy but unclear
+alignment), 0.25 (no policy, borderline necessity), 0.0 (NOT_MET).
+See [synthesis-decision SKILL.md](../agents/synthesis/skills/synthesis-decision/SKILL.md)
+for the step-by-step calculation with worked examples.
 
 ---
 
