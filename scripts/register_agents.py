@@ -102,7 +102,7 @@ def _create_mcp_connections(
         "Content-Type": "application/json",
     }
 
-    api_version = "2025-04-01-preview"
+    api_version = "2025-06-01"  # GA API version for Foundry project connections
     base_url = (
         f"https://management.azure.com/subscriptions/{subscription_id}"
         f"/resourceGroups/{resource_group}"
