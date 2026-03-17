@@ -233,6 +233,13 @@ def run() -> None:
         per_call_policies=[_FoundryPreviewPolicy()],
     )
 
+    # MCP URLs passed to agent containers (agents wire MCPStreamableHTTPTool internally)
+    mcp_icd10 = "https://mcp.deepsense.ai/icd10_codes/mcp"
+    mcp_pubmed = "https://pubmed.mcp.claude.com/mcp"
+    mcp_trials = "https://mcp.deepsense.ai/clinical_trials/mcp"
+    mcp_npi = "https://mcp.deepsense.ai/npi_registry/mcp"
+    mcp_cms = "https://mcp.deepsense.ai/cms_coverage/mcp"
+
     # Foundry MCPTool definitions -- reference the connections created in Step 1.
     # These tell Foundry Agent Service to proxy MCP tool calls through Foundry's
     # managed infrastructure instead of the hosted container's outbound network.
@@ -260,6 +267,9 @@ def run() -> None:
             "env": {
                 "AZURE_AI_PROJECT_ENDPOINT": project_endpoint,
                 "AZURE_OPENAI_DEPLOYMENT_NAME": model_name,
+                "MCP_ICD10_CODES": mcp_icd10,
+                "MCP_PUBMED": mcp_pubmed,
+                "MCP_CLINICAL_TRIALS": mcp_trials,
                 "APPLICATION_INSIGHTS_CONNECTION_STRING": app_insights_cs,
             },
             "tools": clinical_tools,
@@ -272,6 +282,8 @@ def run() -> None:
             "env": {
                 "AZURE_AI_PROJECT_ENDPOINT": project_endpoint,
                 "AZURE_OPENAI_DEPLOYMENT_NAME": model_name,
+                "MCP_NPI_REGISTRY": mcp_npi,
+                "MCP_CMS_COVERAGE": mcp_cms,
                 "APPLICATION_INSIGHTS_CONNECTION_STRING": app_insights_cs,
             },
             "tools": coverage_tools,
