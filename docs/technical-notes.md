@@ -206,9 +206,17 @@ Each process configures observability differently based on its role:
 
 ### Content Recording (Sensitive Data)
 
-The adapter's `configure_otel_providers()` enables `enable_sensitive_data=True`
-by default, recording full prompts, tool arguments, and results in spans.
-In production, sensitive data can be controlled via the adapter's configuration.
+The adapter's `configure_otel_providers()` hard-codes `enable_sensitive_data=True`,
+which records full LLM prompts, tool arguments, and results in telemetry spans.
+This cannot currently be overridden via environment variable — the MAF env var
+`ENABLE_SENSITIVE_DATA` is ignored because the adapter passes the value explicitly.
+
+> **⚠️ Production consideration:** With `enable_sensitive_data=True`, PA request
+> content (patient names, DOBs, diagnoses, clinical notes) will be stored in
+> Application Insights telemetry. Ensure your App Insights resource has
+> appropriate access controls and data retention policies. If this is a concern,
+> contact the `azure-ai-agentserver` team about making this configurable, or
+> reduce App Insights data retention to the minimum required period.
 
 ### Application Map
 
