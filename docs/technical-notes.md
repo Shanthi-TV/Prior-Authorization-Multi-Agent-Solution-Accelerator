@@ -304,6 +304,20 @@ automatically from the shared `monitoring` module output):
 APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=<key>;IngestionEndpoint=...
 ```
 
+**Important: Dual env var names for agent containers.** Two packages in each
+agent container read different env var names for the same connection string:
+
+| Package | Env var name | Convention |
+|---------|-------------|------------|
+| `azure-monitor-opentelemetry` | `APPLICATION_INSIGHTS_CONNECTION_STRING` | Azure Monitor SDK |
+| `azure-ai-agentserver` (Foundry adapter) | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure App Service |
+
+The agent code handles this by calling `os.environ.setdefault("APPLICATIONINSIGHTS_CONNECTION_STRING", ...)`
+when `APPLICATION_INSIGHTS_CONNECTION_STRING` is set. Both env vars are also
+passed to agent containers via `register_agents.py`. Without the adapter-expected
+name, the Foundry portal Traces tab shows empty Trace ID / Duration / Tokens and
+the Operate tab shows "0/3 monitoring features enabled."
+
 Locally (docker-compose), the variable is intentionally absent — all
 observability blocks are no-ops so the app runs without App Insights.
 

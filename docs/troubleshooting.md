@@ -207,9 +207,16 @@ A normal Clinical result has 3 expected top-level keys (`diagnosis_validation`, 
 
 ## Troubleshooting Foundry Traces
 
-If traces don't appear in Foundry:
+If traces don't appear in Foundry (Trace ID = "--", Duration = "--", Tokens = "--"):
 
 - Verify the Foundry project has Application Insights configured
 - If App Insights was added after agent registration, unregister and re-register
 - Verify your backend sends traces to the **same** Application Insights resource
 - Verify spans include `gen_ai.agent.id` matching the registered agent ID
+- **Check the env var name:** The Foundry agentserver adapter expects
+  `APPLICATIONINSIGHTS_CONNECTION_STRING` (no underscore between APPLICATION
+  and INSIGHTS). This is different from `APPLICATION_INSIGHTS_CONNECTION_STRING`
+  used by the `azure-monitor-opentelemetry` SDK. Both must be set. See
+  [technical-notes.md](technical-notes.md#enabling-observability) for details.
+- If the Foundry Operate tab shows "0/3 monitoring features enabled," the
+  adapter-expected env var is missing or empty
