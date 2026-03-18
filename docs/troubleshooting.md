@@ -108,6 +108,15 @@ If set manually, confirm the project endpoint format:
 Also confirm the agents were successfully registered by `scripts/register_agents.py`
 in the postprovision hook (check `azd provision` output for registration errors).
 
+You can verify all deployment health at any time with:
+
+```bash
+python scripts/check_agents.py
+```
+
+This checks agent registration, App Insights connectivity, MCP tool connections,
+backend health, and frontend availability.
+
 ---
 
 ## Hosted-agent authentication returns 401 or 403

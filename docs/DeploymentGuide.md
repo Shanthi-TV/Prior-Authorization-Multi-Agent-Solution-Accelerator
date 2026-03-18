@@ -333,6 +333,7 @@ azd up
 | Container Apps | Bicep | ✅ Running |
 | Foundry Hosted Agents registered | `scripts/register_agents.py` postprovision hook | ✅ Registered |
 | App Insights linked to Foundry project | Bicep connection resource | ✅ Linked |
+| Pre-flight health check | `scripts/check_agents.py` postprovision hook | ✅ All checks passed |
 
 > **Authentication:** All resources use `DefaultAzureCredential` (managed identity on Azure) — no API keys, no manual credential configuration.
 
@@ -357,11 +358,26 @@ Or find them in the [Azure Portal](https://portal.azure.com/) under your resourc
 
 ### 5.1 Verify Application Health
 
-| **Check** | **How** | **Expected Result** |
-|-----------|---------|---------------------|
-| Frontend loads | Open the frontend URL from the deployment output (or run `azd env get-value frontendUrl`) | PA request form displays |
-| Backend health | Open `https://<backend-url>/health` (run `azd env get-value backendUrl` to get the URL) | `{"status": "healthy"}` |
-| MCP connectivity | Submit a sample case via the frontend | Agent progress events stream |
+`azd up` automatically runs a pre-flight health check (`scripts/check_agents.py`)
+after agent registration. It verifies:
+
+| **Check** | **What it validates** |
+|-----------|----------------------|
+| Agent Registration | All 4 agents registered at correct version with App Insights env vars |
+| App Insights Connection | Connection string available for observability |
+| MCP Tool Connections | All 5 MCP servers + App Insights connection in Foundry project |
+| Backend Health | `/health` endpoint returns 200 |
+| Frontend Available | Homepage returns 200 |
+
+You can also run it manually at any time:
+
+```bash
+python scripts/check_agents.py              # full check
+python scripts/check_agents.py --version 6  # verify specific agent version
+python scripts/check_agents.py --poll       # poll until all healthy
+```
+
+If all checks pass, the output shows: **"All checks passed. Ready to submit PA requests."**
 
 ### 5.2 Test the Application
 

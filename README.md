@@ -86,6 +86,7 @@ The orchestrator coordinates four phases with four specialized agents:
   - Each agent container exposes `POST /responses` (Foundry Responses API protocol) and is independently versioned, deployable, and scalable
   - `hosted_agents.py` is a **two-mode dispatcher**: direct HTTP to agent containers (Docker Compose), or `agent_reference` routing through `{AZURE_AI_PROJECT_ENDPOINT}/responses` with `DefaultAzureCredential` (Foundry Hosted Agents)
   - Agents are registered with Foundry via `scripts/register_agents.py` (postprovision hook in `azure.yaml`) — Foundry manages the ACA container lifecycle; no self-managed ACA modules in Bicep
+  - `scripts/check_agents.py` runs automatically after registration to verify all agents, App Insights, MCP connections, backend, and frontend are healthy before the deployment completes
 </details>
 
 <details>
