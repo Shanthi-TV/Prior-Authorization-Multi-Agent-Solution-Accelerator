@@ -24,6 +24,35 @@ from schemas import ClinicalResult
 
 load_dotenv(override=True)  # override=True required for Foundry-deployed env vars
 
+
+def _patch_trace_agent_id(app, agent_name: str) -> None:
+    """Patch the adapter to populate gen_ai.agent.id in trace spans.
+
+    The agentserver adapter (v1.0.0b17) reads gen_ai.agent.id from the
+    incoming request's 'agent' field, but Foundry Agent Service doesn't
+    include that field when forwarding requests to hosted containers.
+    This leaves gen_ai.agent.id empty and Foundry shows Trace ID = '--'.
+
+    This patch wraps AgentRunContextMiddleware.set_run_context_to_context_var
+    to inject the agent name when the request payload lacks an agent reference.
+    """
+    from azure.ai.agentserver.core.server.base import (
+        AgentRunContextMiddleware,
+        request_context,
+    )
+
+    _original = AgentRunContextMiddleware.set_run_context_to_context_var
+
+    def _patched(self, run_context):
+        _original(self, run_context)
+        ctx = request_context.get() or {}
+        if not ctx.get("gen_ai.agent.id"):
+            ctx["gen_ai.agent.id"] = agent_name
+            ctx["gen_ai.agent.name"] = agent_name
+            request_context.set(ctx)
+
+    AgentRunContextMiddleware.set_run_context_to_context_var = _patched
+
 # DeepSense CloudFront routes on User-Agent — without this header the server
 # returns a 301 redirect to the docs site instead of handling MCP messages.
 _MCP_HTTP_CLIENT = httpx.AsyncClient(
@@ -97,18 +126,11 @@ def main() -> None:
         default_options={"response_format": ClinicalResult},
     )
 
-    # --- Fix gen_ai.agent.id / gen_ai.agent.name for Foundry Traces ---
-    # The agentserver adapter reads these properties from the Agent object to
-    # populate gen_ai.agent.id and gen_ai.agent.name span attributes, which
-    # Foundry uses for trace correlation. MAF's as_agent() stores them
-    # internally but doesn't expose them as the adapter expects, resulting
-    # in empty strings and Trace ID = "--" in the Foundry portal.
-    agent.id = "clinical-reviewer-agent"
-    agent.name = "clinical-reviewer-agent"
-
     # --- Serve as HTTP endpoint for Foundry hosting ---
     # Default port is 8088 (the Foundry Hosted Agent convention via DEFAULT_AD_PORT).
-    from_agent_framework(agent).run()
+    app = from_agent_framework(agent)
+    _patch_trace_agent_id(app, "clinical-reviewer-agent")
+    app.run()
 
 
 if __name__ == "__main__":

@@ -82,10 +82,9 @@ agent = (
         default_options={"response_format": ClinicalResult},
     )
 )
-# Required: expose id/name as public attributes for the agentserver adapter.
-# Without this, gen_ai.agent.id is empty in spans and Foundry shows Trace ID = "--".
-agent.id = "clinical-reviewer-agent"
-agent.name = "clinical-reviewer-agent"
+app = from_agent_framework(agent)
+_patch_trace_agent_id(app, "clinical-reviewer-agent")  # Fix gen_ai.agent.id for Foundry Traces
+app.run()
 ```
 
 MAF enforces the schema as a token-level JSON constraint at inference time —
@@ -212,22 +211,25 @@ Each process configures observability differently based on its role:
 
 ### Agent ID / Name for Trace Correlation
 
-The agentserver adapter (v1.0.0b17) reads `agent.id` and `agent.name` as direct
-attribute access on the MAF Agent object to populate `gen_ai.agent.id` and
-`gen_ai.agent.name` span attributes. Foundry uses `gen_ai.agent.id` to correlate
-traces to registered agents.
+The agentserver adapter (v1.0.0b17) populates `gen_ai.agent.id` and
+`gen_ai.agent.name` span attributes from the incoming request payload's
+`agent` field (via `AgentRunContext.get_agent_id_object()`). Foundry
+uses `gen_ai.agent.id` to correlate traces to registered agents.
 
-However, `AzureOpenAIResponsesClient.as_agent(id=..., name=...)` stores these
-values internally without exposing them as public properties. The adapter gets
-empty strings, which causes Trace ID = "--" in the Foundry portal.
+However, Foundry Agent Service does not include the `agent` reference
+when forwarding requests to hosted containers. The adapter gets `None`
+from `get_agent_id_object()`, so `gen_ai.agent.id` is empty — causing
+Trace ID = "--" in the Foundry portal.
 
-**Fix:** explicitly set `agent.id` and `agent.name` on the Agent object after
-`.as_agent()` returns — before passing it to `from_agent_framework()`. All four
-agent containers in this project apply this fix.
+**Fix:** All four agent containers monkey-patch
+`AgentRunContextMiddleware.set_run_context_to_context_var` (via
+`_patch_trace_agent_id()` in each `main.py`) to inject the agent name
+as a fallback when the request payload lacks an agent reference.
 
-This is a known issue with the MAF ↔ agentserver adapter interop in
-`agent-framework-core` 1.0.0rc2/rc3 + `azure-ai-agentserver-agentframework` 1.0.0b17.
-Future SDK versions may fix this so the explicit assignment is no longer needed.
+This is a known gap in the Foundry Agent Service ↔ agentserver adapter
+interop in `azure-ai-agentserver-core/agentframework` 1.0.0b17. Future
+versions may include the `agent` reference in forwarded requests, making
+this patch unnecessary.
 
 ### Content Recording (Sensitive Data)
 
