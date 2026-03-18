@@ -81,7 +81,8 @@ prior-auth-maf/
 │
 ├── frontend/              # Next.js UI
 ├── scripts/               # Post-provision helpers
-│   └── register_agents.py # Registers all 4 agents with Foundry Hosted Agents
+│   ├── register_agents.py # Registers all 4 agents with Foundry Hosted Agents
+│   └── check_agents.py   # Pre-flight health check — agents, App Insights, MCP, backend, frontend
 ├── docs/                  # Architecture, deployment guide, API reference
 ├── infra/                 # Bicep / azd infrastructure
 └── docker-compose.yml     # Local: backend + 4 agents + frontend
