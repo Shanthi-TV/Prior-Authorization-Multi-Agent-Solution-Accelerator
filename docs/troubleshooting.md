@@ -221,10 +221,33 @@ If traces don't appear in Foundry (Trace ID = "--", Duration = "--", Tokens = "-
 - Verify the Foundry project has Application Insights configured
 - If App Insights was added after agent registration, unregister and re-register
 - Verify your backend sends traces to the **same** Application Insights resource
-- Verify spans include `gen_ai.agent.id` matching the registered agent ID.
-  Each agent must set `id=` in `.as_agent()` matching the name used in
-  `register_agents.py`. Without this, MAF auto-generates random UUIDs and
-  Foundry can't correlate traces to agents.
+- **Verify `gen_ai.agent.id` is populated in spans.** The Foundry portal uses
+  this attribute to correlate traces to registered agents. The agentserver
+  adapter (v1.0.0b17) reads `agent.id` and `agent.name` as direct attribute
+  access on the MAF Agent object. However, `AzureOpenAIResponsesClient.as_agent()`
+  stores `id=` and `name=` internally in a way the adapter can't access —
+  resulting in empty `gen_ai.agent.id` / `gen_ai.agent.name` in spans and
+  Trace ID = "--" in the Foundry portal. **Fix:** explicitly set `agent.id`
+  and `agent.name` on the Agent object after `.as_agent()` returns:
+  ```python
+  agent = AzureOpenAIResponsesClient(...).as_agent(
+      name="my-agent",
+      id="my-agent",
+      ...
+  )
+  # Required: expose id/name as public attributes for the agentserver adapter
+  agent.id = "my-agent"
+  agent.name = "my-agent"
+  ```
+  You can verify by querying App Insights:
+  ```kql
+  traces
+  | where cloud_RoleName == 'azure.ai.agentserver'
+  | where message has 'agent_run'
+  | extend agentId = tostring(parse_json(customDimensions)['gen_ai.agent.id'])
+  | project timestamp, agentId
+  ```
+  If `agentId` is empty, the explicit assignment is missing.
 - **Check the env var name:** The Foundry agentserver adapter expects
   `APPLICATIONINSIGHTS_CONNECTION_STRING` (no underscore between APPLICATION
   and INSIGHTS). This is different from `APPLICATION_INSIGHTS_CONNECTION_STRING`

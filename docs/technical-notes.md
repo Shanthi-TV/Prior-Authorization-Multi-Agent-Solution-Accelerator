@@ -82,6 +82,10 @@ agent = (
         default_options={"response_format": ClinicalResult},
     )
 )
+# Required: expose id/name as public attributes for the agentserver adapter.
+# Without this, gen_ai.agent.id is empty in spans and Foundry shows Trace ID = "--".
+agent.id = "clinical-reviewer-agent"
+agent.name = "clinical-reviewer-agent"
 ```
 
 MAF enforces the schema as a token-level JSON constraint at inference time —
@@ -205,6 +209,25 @@ Each process configures observability differently based on its role:
 > the adapter overwrites it — creating a conflict where traces go to App Insights
 > but the Foundry portal can't correlate them (Trace ID = "--", Duration = "--").
 > Letting the adapter handle everything avoids this conflict.
+
+### Agent ID / Name for Trace Correlation
+
+The agentserver adapter (v1.0.0b17) reads `agent.id` and `agent.name` as direct
+attribute access on the MAF Agent object to populate `gen_ai.agent.id` and
+`gen_ai.agent.name` span attributes. Foundry uses `gen_ai.agent.id` to correlate
+traces to registered agents.
+
+However, `AzureOpenAIResponsesClient.as_agent(id=..., name=...)` stores these
+values internally without exposing them as public properties. The adapter gets
+empty strings, which causes Trace ID = "--" in the Foundry portal.
+
+**Fix:** explicitly set `agent.id` and `agent.name` on the Agent object after
+`.as_agent()` returns — before passing it to `from_agent_framework()`. All four
+agent containers in this project apply this fix.
+
+This is a known issue with the MAF ↔ agentserver adapter interop in
+`agent-framework-core` 1.0.0rc2/rc3 + `azure-ai-agentserver-agentframework` 1.0.0b17.
+Future SDK versions may fix this so the explicit assignment is no longer needed.
 
 ### Content Recording (Sensitive Data)
 

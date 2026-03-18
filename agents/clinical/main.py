@@ -97,6 +97,15 @@ def main() -> None:
         default_options={"response_format": ClinicalResult},
     )
 
+    # --- Fix gen_ai.agent.id / gen_ai.agent.name for Foundry Traces ---
+    # The agentserver adapter reads these properties from the Agent object to
+    # populate gen_ai.agent.id and gen_ai.agent.name span attributes, which
+    # Foundry uses for trace correlation. MAF's as_agent() stores them
+    # internally but doesn't expose them as the adapter expects, resulting
+    # in empty strings and Trace ID = "--" in the Foundry portal.
+    agent.id = "clinical-reviewer-agent"
+    agent.name = "clinical-reviewer-agent"
+
     # --- Serve as HTTP endpoint for Foundry hosting ---
     # Default port is 8088 (the Foundry Hosted Agent convention via DEFAULT_AD_PORT).
     from_agent_framework(agent).run()

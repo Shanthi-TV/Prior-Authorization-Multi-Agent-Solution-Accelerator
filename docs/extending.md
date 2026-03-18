@@ -77,6 +77,11 @@ def main() -> None:
         default_options={"response_format": NewAgentResult},
     )
 
+    # Required: expose id/name as public attributes for the agentserver adapter.
+    # Without this, gen_ai.agent.id is empty in spans and Foundry shows Trace ID = "--".
+    agent.id = "new-agent"
+    agent.name = "new-agent"
+
     from_agent_framework(agent).run()
 
 
