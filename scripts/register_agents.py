@@ -275,6 +275,11 @@ def run() -> None:
     agents = [
         {
             "name": "clinical-reviewer-agent",
+            "description": (
+                "Validates ICD-10 diagnosis codes, extracts clinical indicators with "
+                "confidence scoring, searches PubMed literature and ClinicalTrials.gov, "
+                "and returns a structured clinical profile for downstream coverage assessment."
+            ),
             "image": f"{acr_endpoint}/agent-clinical:{image_tag}",
             "cpu": "1",
             "memory": "2Gi",
@@ -291,6 +296,11 @@ def run() -> None:
         },
         {
             "name": "coverage-assessment-agent",
+            "description": (
+                "Verifies provider NPI credentials, searches Medicare NCDs/LCDs via CMS "
+                "Coverage MCP, maps clinical findings to policy criteria with "
+                "MET/NOT_MET/INSUFFICIENT assessment, and produces documentation gap analysis."
+            ),
             "image": f"{acr_endpoint}/agent-coverage:{image_tag}",
             "cpu": "1",
             "memory": "2Gi",
@@ -306,6 +316,12 @@ def run() -> None:
         },
         {
             "name": "compliance-agent",
+            "description": (
+                "Validates documentation completeness for prior authorization requests "
+                "using a 10-item checklist covering patient information, provider NPI, "
+                "insurance details, medical codes, clinical notes quality, NCCI bundling "
+                "risk, and service type classification. Uses no external tools — pure LLM reasoning."
+            ),
             "image": f"{acr_endpoint}/agent-compliance:{image_tag}",
             "cpu": "0.5",
             "memory": "1Gi",
@@ -321,6 +337,12 @@ def run() -> None:
         },
         {
             "name": "synthesis-agent",
+            "description": (
+                "Synthesizes outputs from Compliance, Clinical Reviewer, and Coverage agents "
+                "into a final APPROVE or PEND recommendation using 3-gate evaluation "
+                "(Provider → Codes → Medical Necessity), weighted confidence scoring, "
+                "and a structured audit trail."
+            ),
             "image": f"{acr_endpoint}/agent-synthesis:{image_tag}",
             "cpu": "1",
             "memory": "2Gi",
@@ -341,6 +363,7 @@ def run() -> None:
         try:
             agent_version = client.agents.create_version(
                 agent_name=name,
+                description=agent_def["description"],
                 definition=HostedAgentDefinition(
                     container_protocol_versions=[
                         ProtocolVersionRecord(
