@@ -34,3 +34,5 @@ nul
 # Generated output artifacts
 *.pdf
 backend/*_result.json
+
+SKILL.md
