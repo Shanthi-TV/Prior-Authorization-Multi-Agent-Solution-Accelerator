@@ -683,15 +683,18 @@ hooks:
         $ErrorActionPreference = 'Continue'
         Write-Host "  Backend and frontend container apps updated" -ForegroundColor Green
 
-        # Ensure the deployer has "Azure AI User" on the Foundry project.
-        # The role must be scoped to the project (not account) for AIServices data actions.
+        # Ensure the deployer has "Azure AI User" on the Foundry account + project.
+        # The account-level role is required by the Foundry portal; the project-level
+        # role is required for AIServices data actions.
         # az role assignment create is idempotent — no error if it already exists.
         Write-Host "  Ensuring deployer has Azure AI User role..." -ForegroundColor White
         $deployerOid = az ad signed-in-user show --query id -o tsv 2>$null
         $subId = azd env get-value AZURE_SUBSCRIPTION_ID 2>$null
-        $scope = "/subscriptions/$subId/resourceGroups/$rgName/providers/Microsoft.CognitiveServices/accounts/$foundryAccountName/projects/$foundryProjectName"
-        $existing = az role assignment list --assignee $deployerOid --role "Azure AI User" --scope $scope --query "[].id" -o tsv 2>$null
-        az role assignment create --assignee $deployerOid --role "Azure AI User" --scope $scope --only-show-errors 2>$null | Out-Null
+        $accountScope = "/subscriptions/$subId/resourceGroups/$rgName/providers/Microsoft.CognitiveServices/accounts/$foundryAccountName"
+        $projectScope = "$accountScope/projects/$foundryProjectName"
+        $existing = az role assignment list --assignee $deployerOid --role "Azure AI User" --scope $projectScope --query "[].id" -o tsv 2>$null
+        az role assignment create --assignee $deployerOid --role "Azure AI User" --scope $accountScope --only-show-errors 2>$null | Out-Null
+        az role assignment create --assignee $deployerOid --role "Azure AI User" --scope $projectScope --only-show-errors 2>$null | Out-Null
         $roleIsNew = -not $existing
         Write-Host "  Azure AI User role ensured (deployer)" -ForegroundColor Green
 
@@ -700,7 +703,8 @@ hooks:
         Write-Host "  Ensuring backend managed identity has Azure AI User role..." -ForegroundColor White
         $backendMiOid = az containerapp identity show --name $backendApp --resource-group $rgName --query "principalId" -o tsv 2>$null
         if ($backendMiOid) {
-            az role assignment create --assignee-object-id $backendMiOid --assignee-principal-type ServicePrincipal --role "Azure AI User" --scope $scope --only-show-errors 2>$null | Out-Null
+            az role assignment create --assignee-object-id $backendMiOid --assignee-principal-type ServicePrincipal --role "Azure AI User" --scope $accountScope --only-show-errors 2>$null | Out-Null
+            az role assignment create --assignee-object-id $backendMiOid --assignee-principal-type ServicePrincipal --role "Azure AI User" --scope $projectScope --only-show-errors 2>$null | Out-Null
             Write-Host "  Backend managed identity role ensured" -ForegroundColor Green
         } else {
             Write-Host "  WARN: Could not retrieve backend managed identity" -ForegroundColor Yellow
@@ -843,15 +847,18 @@ hooks:
         az containerapp update --name "$FRONTEND_APP" --resource-group "$RG_NAME" --image "$ACR_ENDPOINT/frontend:$IMAGE_TAG" --output none 2>/dev/null
         printf "${Green}  Backend and frontend container apps updated${NC}\n"
 
-        # Ensure the deployer has "Azure AI User" on the Foundry project.
-        # The role must be scoped to the project (not account) for AIServices data actions.
+        # Ensure the deployer has "Azure AI User" on the Foundry account + project.
+        # The account-level role is required by the Foundry portal; the project-level
+        # role is required for AIServices data actions.
         # az role assignment create is idempotent — no error if it already exists.
         printf "${White}  Ensuring deployer has Azure AI User role...${NC}\n"
         DEPLOYER_OID=$(az ad signed-in-user show --query id -o tsv 2>/dev/null)
         SUB_ID=$(azd env get-value AZURE_SUBSCRIPTION_ID 2>/dev/null)
-        SCOPE="/subscriptions/$SUB_ID/resourceGroups/$RG_NAME/providers/Microsoft.CognitiveServices/accounts/$FOUNDRY_ACCOUNT_NAME/projects/$FOUNDRY_PROJECT_NAME"
-        EXISTING=$(az role assignment list --assignee "$DEPLOYER_OID" --role "Azure AI User" --scope "$SCOPE" --query "[].id" -o tsv 2>/dev/null)
-        az role assignment create --assignee "$DEPLOYER_OID" --role "Azure AI User" --scope "$SCOPE" --only-show-errors > /dev/null 2>/dev/null || true
+        ACCOUNT_SCOPE="/subscriptions/$SUB_ID/resourceGroups/$RG_NAME/providers/Microsoft.CognitiveServices/accounts/$FOUNDRY_ACCOUNT_NAME"
+        PROJECT_SCOPE="$ACCOUNT_SCOPE/projects/$FOUNDRY_PROJECT_NAME"
+        EXISTING=$(az role assignment list --assignee "$DEPLOYER_OID" --role "Azure AI User" --scope "$PROJECT_SCOPE" --query "[].id" -o tsv 2>/dev/null)
+        az role assignment create --assignee "$DEPLOYER_OID" --role "Azure AI User" --scope "$ACCOUNT_SCOPE" --only-show-errors > /dev/null 2>/dev/null || true
+        az role assignment create --assignee "$DEPLOYER_OID" --role "Azure AI User" --scope "$PROJECT_SCOPE" --only-show-errors > /dev/null 2>/dev/null || true
         ROLE_IS_NEW=false
         [ -z "$EXISTING" ] && ROLE_IS_NEW=true
         printf "${Green}  Azure AI User role ensured (deployer)${NC}\n"
@@ -861,7 +868,8 @@ hooks:
         printf "${White}  Ensuring backend managed identity has Azure AI User role...${NC}\n"
         BACKEND_MI_OID=$(az containerapp identity show --name "$BACKEND_APP" --resource-group "$RG_NAME" --query "principalId" -o tsv 2>/dev/null)
         if [ -n "$BACKEND_MI_OID" ]; then
-            az role assignment create --assignee-object-id "$BACKEND_MI_OID" --assignee-principal-type ServicePrincipal --role "Azure AI User" --scope "$SCOPE" --only-show-errors > /dev/null 2>/dev/null || true
+            az role assignment create --assignee-object-id "$BACKEND_MI_OID" --assignee-principal-type ServicePrincipal --role "Azure AI User" --scope "$ACCOUNT_SCOPE" --only-show-errors > /dev/null 2>/dev/null || true
+            az role assignment create --assignee-object-id "$BACKEND_MI_OID" --assignee-principal-type ServicePrincipal --role "Azure AI User" --scope "$PROJECT_SCOPE" --only-show-errors > /dev/null 2>/dev/null || true
             printf "${Green}  Backend managed identity role ensured${NC}\n"
         else
             printf "${Yellow}  WARN: Could not retrieve backend managed identity${NC}\n"
