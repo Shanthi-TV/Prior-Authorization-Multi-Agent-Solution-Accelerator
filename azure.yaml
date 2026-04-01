@@ -19,7 +19,7 @@ hooks:
           Write-Host ""
           Write-Host " You selected region: $region" -ForegroundColor Yellow
           Write-Host ""
-          Write-Host " gpt-5.4 is currently only available in:" -ForegroundColor White
+          Write-Host " gpt-5.3-chat is currently only available in:" -ForegroundColor White
           Write-Host "   - East US 2      (eastus2)  - GlobalStandard + DataZoneStandard" -ForegroundColor Cyan
           Write-Host "   - Sweden Central (swedencentral) - GlobalStandard only" -ForegroundColor Cyan
           Write-Host ""
@@ -40,7 +40,7 @@ hooks:
           } else {
             Write-Host ""
             Write-Host "===============================================================" -ForegroundColor Yellow
-            Write-Host " SELECT GPT-5.4 DEPLOYMENT TYPE" -ForegroundColor Green
+            Write-Host " SELECT gpt-5.3-chat DEPLOYMENT TYPE" -ForegroundColor Green
             Write-Host "===============================================================" -ForegroundColor Yellow
             Write-Host ""
             Write-Host " 1. GlobalStandard  - No data residency guarantee, available in all supported regions" -ForegroundColor Cyan
@@ -340,7 +340,7 @@ hooks:
           printf "${Red} REGION NOT SUPPORTED\n"
           printf "${Red}===============================================================${NC}\n\n"
           printf "${Yellow} You selected region: %s${NC}\n\n" "$REGION"
-          printf "${White} gpt-5.4 is currently only available in:${NC}\n"
+          printf "${White} gpt-5.3-chat is currently only available in:${NC}\n"
           printf "${Cyan}   - East US 2      (eastus2)  - GlobalStandard + DataZoneStandard${NC}\n"
           printf "${Cyan}   - Sweden Central (swedencentral) - GlobalStandard only${NC}\n\n"
           printf "${White} Please change region with: azd env set AZURE_LOCATION eastus2${NC}\n\n"
@@ -363,7 +363,7 @@ hooks:
           else
             printf "\n"
             printf "${Yellow}===============================================================\n"
-            printf "${Green} SELECT GPT-5.4 DEPLOYMENT TYPE\n"
+            printf "${Green} SELECT gpt-5.3-chat DEPLOYMENT TYPE\n"
             printf "${Yellow}===============================================================${NC}\n\n"
             printf "${Cyan} 1. GlobalStandard  - No data residency guarantee, available in all supported regions${NC}\n"
             printf "${Cyan} 2. DataZoneStandard - Data stays within geographic zone (US/EU), East US 2 only${NC}\n\n"
@@ -719,7 +719,7 @@ hooks:
             python -m pip install "azure-ai-projects>=2.0.0" --quiet
         }
         $deploymentName = azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME 2>$null
-        if (-not $deploymentName -or $deploymentName -match "ERROR") { $deploymentName = "gpt-5.4" }
+        if (-not $deploymentName -or $deploymentName -match "ERROR") { $deploymentName = "gpt-5.3-chat" }
         $appInsightsCs = azd env get-value APPLICATION_INSIGHTS_CONNECTION_STRING 2>$null
         if ($appInsightsCs -match "ERROR") { $appInsightsCs = "" }
         $env:AZURE_AI_PROJECT_ENDPOINT = $projectEndpoint
@@ -768,7 +768,7 @@ hooks:
         Write-Host " Next Steps:" -ForegroundColor White
         Write-Host "  1. Open the Frontend URL below in your browser" -ForegroundColor White
         Write-Host "  2. Click 'Load Sample Case' and then 'Submit for Review'" -ForegroundColor White
-        Write-Host "  Note: gpt-5.4 was automatically deployed by azd (DataZone Standard)" -ForegroundColor Gray
+        Write-Host "  Note: gpt-5.3-chat was automatically deployed by azd (DataZone Standard)" -ForegroundColor Gray
         Write-Host ""
         $frontendUrl = azd env get-value frontendUrl
         $backendUrl  = azd env get-value backendUrl
@@ -883,7 +883,7 @@ hooks:
         fi
         DEPLOYMENT_NAME=$(azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME 2>/dev/null || true)
         # azd env get-value writes errors to stdout; detect and fall back
-        case "$DEPLOYMENT_NAME" in *ERROR*|"" ) DEPLOYMENT_NAME="gpt-5.4" ;; esac
+        case "$DEPLOYMENT_NAME" in *ERROR*|"" ) DEPLOYMENT_NAME="gpt-5.3-chat" ;; esac
         APP_INSIGHTS_CS=$(azd env get-value APPLICATION_INSIGHTS_CONNECTION_STRING 2>/dev/null || true)
         case "$APP_INSIGHTS_CS" in *ERROR* ) APP_INSIGHTS_CS="" ;; esac
         export AZURE_AI_PROJECT_ENDPOINT="$PROJECT_ENDPOINT"
@@ -930,7 +930,7 @@ hooks:
         printf "${White} Next Steps:${NC}\n"
         printf "  1. Open the Frontend URL below in your browser\n"
         printf "  2. Click 'Load Sample Case' and then 'Submit for Review'\n"
-        printf "  Note: gpt-5.4 was automatically deployed by azd (DataZone Standard)\n\n"
+        printf "  Note: gpt-5.3-chat was automatically deployed by azd (DataZone Standard)\n\n"
         FRONTEND_URL=$(azd env get-value frontendUrl)
         BACKEND_URL=$(azd env get-value backendUrl)
         printf "${Yellow} Application URLs:${NC}\n"
